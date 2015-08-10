@@ -14,3 +14,15 @@
 
 (defn test-dir [dir]
   (test/test-vars (find-tests-in-dir dir)))
+
+(defonce clojure-report-methods (methods test/report))
+
+(defmulti clojure-report :type)
+
+(doseq [[type method] clojure-report-methods]
+  (defmethod clojure-report type [m] (method m)))
+
+(def ^:dynamic *report* clojure-report)
+
+(doseq [[type method] clojure-report-methods]
+  (defmethod test/report type [m] (*report* m)))
