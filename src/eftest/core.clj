@@ -13,6 +13,17 @@
 (defn find-tests-in-dir [dir]
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
 
+(defmethod test/report :begin-test-run [_])
+(defmethod test/report :end-test-run [_])
+
+(defn test-vars [vars]
+  (test/report {:type :begin-test-run, :vars vars})
+  (try (test/test-vars vars)
+       (finally (test/report {:type :end-test-run, :vars vars}))))
+
+(defn test-dir [dir]
+  (test-vars (find-tests-in-dir dir)))
+
 (defonce clojure-report-methods (methods test/report))
 
 (defmulti clojure-report :type)
@@ -25,11 +36,12 @@
 (doseq [[type method] clojure-report-methods]
   (defmethod test/report type [m] (*report* m)))
 
-(declare ^:dynamic *progress*)
-
 (defmulti progress-report (fn [_ m] (:type m)))
 
 (defmethod progress-report :default [bar m])
+
+(defmethod progress-report :begin-test-run [bar m]
+  (prog/print (reset! bar (prog/progress-bar (count (:vars m))))))
 
 (defmethod progress-report :pass [bar m]
   (prog/print (swap! bar prog/tick)))
@@ -43,12 +55,5 @@
 (defmethod progress-report :summary [bar m]
   (prog/print (swap! bar prog/done)))
 
-(defn wrap-progress-bar [f]
-  (fn [vars]
-    (let [bar (atom (prog/progress-bar (count vars)))]
-      (binding [*report* (partial progress-report bar)]
-        (prog/print @bar)
-        (f vars)))))
-
-(defn test-dir [dir]
-  ((wrap-progress-bar test/test-vars) (find-tests-in-dir dir)))
+(defn make-progress-reporter []
+  (partial progress-report (atom nil)))
