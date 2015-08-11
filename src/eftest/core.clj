@@ -36,24 +36,25 @@
 (doseq [[type method] clojure-report-methods]
   (defmethod test/report type [m] (*report* m)))
 
-(defmulti progress-report (fn [_ m] (:type m)))
+(defmulti report (fn [_ m] (:type m)))
 
-(defmethod progress-report :default [bar m])
+(defmethod report :default [_ m])
 
-(defmethod progress-report :begin-test-run [bar m]
+(defmethod report :begin-test-run [bar m]
   (prog/print (reset! bar (prog/progress-bar (count (:vars m))))))
 
-(defmethod progress-report :pass [bar m]
+(defmethod report :pass [bar m]
   (prog/print (swap! bar prog/tick)))
 
-(defmethod progress-report :fail [bar m]
+(defmethod report :fail [bar m]
   (prog/print (swap! bar prog/tick)))
 
-(defmethod progress-report :error [bar m]
+(defmethod report :error [bar m]
   (prog/print (swap! bar prog/tick)))
 
-(defmethod progress-report :summary [bar m]
+(defmethod report :summary [bar m]
   (prog/print (swap! bar prog/done)))
 
-(defn make-progress-reporter []
-  (partial progress-report (atom nil)))
+(defn run-tests [dir]
+  (binding [*report* (partial report (atom nil))]
+    (test-dir dir)))
