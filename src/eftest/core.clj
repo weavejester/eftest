@@ -2,7 +2,8 @@
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]
-            [progrock.core :as prog]))
+            [progrock.core :as prog]
+            [io.aviso.ansi :as ansi]))
 
 (defn require-namespaces-in-dir [dir]
   (map (fn [ns] (require ns) (find-ns ns)) (find/find-namespaces-in-dir (io/file dir))))
@@ -36,21 +37,25 @@
 (doseq [[type method] clojure-report-methods]
   (defmethod test/report type [m] (*report* m)))
 
+(def base-format ":progress/:total   :percent% [:bar]  ETA: :remaining")
+(def pass-format (ansi/green base-format))
+(def fail-format (ansi/red base-format))
+
 (defmulti report (fn [_ m] (:type m)))
 
 (defmethod report :default [_ m])
 
 (defmethod report :begin-test-run [bar m]
-  (prog/print (reset! bar (prog/progress-bar (count (:vars m))))))
+  (prog/print (reset! bar (prog/progress-bar (count (:vars m)))) {:format pass-format}))
 
 (defmethod report :pass [bar m]
-  (prog/print (swap! bar prog/tick)))
+  (prog/print (swap! bar prog/tick) {:format pass-format}))
 
 (defmethod report :fail [bar m]
-  (prog/print (swap! bar prog/tick)))
+  (prog/print (swap! bar prog/tick) {:format fail-format}))
 
 (defmethod report :error [bar m]
-  (prog/print (swap! bar prog/tick)))
+  (prog/print (swap! bar prog/tick) {:format fail-format}))
 
 (defmethod report :summary [bar m]
   (prog/print (swap! bar prog/done)))
