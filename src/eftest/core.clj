@@ -26,7 +26,6 @@
     (fn [m] (locking lock (report m)))))
 
 (defn test-vars [vars]
-  (test/do-report {:type :begin-test-run, :vars vars})
   (let [report   (locking-report test/report)
         counters (pmap (fn [[ns vars]]
                          (binding [test/report report]
@@ -37,3 +36,7 @@
 
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
+
+(defn run-tests [dir]
+  (test/do-report {:type :begin-test-run, :vars vars})
+  (test-dir dir))
