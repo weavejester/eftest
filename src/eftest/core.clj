@@ -14,29 +14,22 @@
 (defn find-tests-in-dir [dir]
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
 
-(defn test-ns-vars [ns vars]
-  (binding [test/*report-counters* (ref test/*initial-report-counters*)]
-    (test/do-report {:type :begin-test-ns, :ns ns})
-    (test/test-vars vars)
-    (test/do-report {:type :end-test-ns, :ns ns})
-    @test/*report-counters*))
-
-(defn locking-report [report]
+(defn synchronize [f]
   (let [lock (Object.)]
-    (fn [m] (locking lock (report m)))))
+    (fn [x] (locking lock (f x)))))
 
 (defn test-vars [vars]
-  (let [report   (locking-report test/report)
-        counters (pmap (fn [[ns vars]]
-                         (binding [test/report report]
-                           (test-ns-vars ns vars)))
-                       (group-by (comp :ns meta) vars))]
-    (test/do-report (-> (apply merge-with + counters)
-                        (assoc :type :summary)))))
+  (doseq [[ns vars] (group-by (comp :ns meta) vars)]
+    (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
+          each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
+          report        (synchronize test/report)
+          test-var      (fn [v] (binding [test/report report] (test/test-var v)))]
+      (once-fixtures
+       (fn [] (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars)))))))
 
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
 
 (defn run-tests [dir]
-  (test/do-report {:type :begin-test-run, :vars vars})
+  (test/do-report {:type :begin-test-run})
   (test-dir dir))
