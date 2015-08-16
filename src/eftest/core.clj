@@ -25,18 +25,6 @@
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
 
-(defonce clojure-report-methods (methods test/report))
-
-(defmulti clojure-report :type)
-
-(doseq [[type method] clojure-report-methods]
-  (defmethod clojure-report type [m] (method m)))
-
-(def ^:dynamic *report* clojure-report)
-
-(doseq [[type method] clojure-report-methods]
-  (defmethod test/report type [m] (*report* m)))
-
 (def base-format ":progress/:total   :percent% [:bar]  ETA: :remaining")
 (def pass-format (ansi/green base-format))
 (def fail-format (ansi/red base-format))
@@ -61,5 +49,5 @@
   (prog/print (swap! bar prog/done)))
 
 (defn run-tests [dir]
-  (binding [*report* (partial report (atom nil))]
+  (binding [test/report (partial report (atom nil))]
     (test-dir dir)))
