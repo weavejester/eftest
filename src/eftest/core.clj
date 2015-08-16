@@ -22,30 +22,3 @@
 
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
-
-(def base-format ":progress/:total   :percent% [:bar]  ETA: :remaining")
-(def pass-format (ansi/green base-format))
-(def fail-format (ansi/red base-format))
-
-(defmulti report (fn [_ m] (:type m)))
-
-(defmethod report :default [_ m])
-
-(defmethod report :begin-test-run [bar m]
-  (prog/print (reset! bar (prog/progress-bar (count (:vars m)))) {:format pass-format}))
-
-(defmethod report :pass [bar m]
-  (prog/print (swap! bar prog/tick) {:format pass-format}))
-
-(defmethod report :fail [bar m]
-  (prog/print (swap! bar prog/tick) {:format fail-format}))
-
-(defmethod report :error [bar m]
-  (prog/print (swap! bar prog/tick) {:format fail-format}))
-
-(defmethod report :summary [bar m]
-  (prog/print (swap! bar prog/done)))
-
-(defn run-tests [dir]
-  (binding [test/report (partial report (atom nil))]
-    (test-dir dir)))
