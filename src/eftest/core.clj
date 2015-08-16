@@ -16,9 +16,9 @@
 
 (defn test-ns-vars [ns vars]
   (binding [test/*report-counters* (ref test/*initial-report-counters*)]
-    (test/report {:type :begin-test-ns, :ns ns})
+    (test/do-report {:type :begin-test-ns, :ns ns})
     (test/test-vars vars)
-    (test/report {:type :end-test-ns, :ns ns})
+    (test/do-report {:type :end-test-ns, :ns ns})
     @test/*report-counters*))
 
 (defn locking-report [report]
@@ -26,14 +26,14 @@
     (fn [m] (locking lock (report m)))))
 
 (defn test-vars [vars]
-  (test/report {:type :begin-test-run, :vars vars})
+  (test/do-report {:type :begin-test-run, :vars vars})
   (let [report   (locking-report test/report)
         counters (pmap (fn [[ns vars]]
                          (binding [test/report report]
                            (test-ns-vars ns vars)))
                        (group-by (comp :ns meta) vars))]
-    (test/report (-> (apply merge-with + counters)
-                     (assoc :type :summary)))))
+    (test/do-report (-> (apply merge-with + counters)
+                        (assoc :type :summary)))))
 
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
