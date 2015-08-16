@@ -15,12 +15,10 @@
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
 
 (defmethod test/report :begin-test-run [_])
-(defmethod test/report :end-test-run [_])
 
 (defn test-vars [vars]
   (test/report {:type :begin-test-run, :vars vars})
-  (try (test/test-vars vars)
-       (finally (test/report {:type :end-test-run, :vars vars}))))
+  (test/test-vars vars))
 
 (defn test-dir [dir]
   (test-vars (find-tests-in-dir dir)))
