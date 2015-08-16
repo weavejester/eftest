@@ -27,9 +27,20 @@
       (once-fixtures
        (fn [] (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars)))))))
 
+(defn test-ns [ns]
+  (let [ns (the-ns ns)]
+    (binding [test/*report-counters* (ref test/*initial-report-counters*)]
+      (test/do-report {:type :begin-test-ns, :ns ns})
+      (if-let [hook (find-var (symbol (str (ns-name ns)) "test-ns-hook"))]
+        ((var-get hook))
+        (test-vars (find-tests-in-namespace ns)))
+      (test/do-report {:type :end-test-ns, :ns ns})
+      @test/*report-counters*)))
+
 (defn test-dir [dir]
-  (test-vars (find-tests-in-dir dir)))
+  (apply merge-with + (map test-ns (require-namespaces-in-dir dir))))
 
 (defn run-tests [dir]
   (test/do-report {:type :begin-test-run})
-  (test-dir dir))
+  (let [counters (test-dir dir)]
+    (test/do-report (assoc counters :type :summary))))
