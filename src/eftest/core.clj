@@ -15,8 +15,7 @@
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
 
 (defn synchronize [f]
-  (let [lock (Object.)]
-    (fn [x] (locking lock (f x)))))
+  (let [lock (Object.)] (fn [x] (locking lock (f x)))))
 
 (defn test-vars [vars]
   (doseq [[ns vars] (group-by (comp :ns meta) vars)]
@@ -27,20 +26,28 @@
       (once-fixtures
        (fn [] (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars)))))))
 
-(defn test-ns [ns]
-  (let [ns (the-ns ns)]
-    (binding [test/*report-counters* (ref test/*initial-report-counters*)]
-      (test/do-report {:type :begin-test-ns, :ns ns})
-      (if-let [hook (find-var (symbol (str (ns-name ns)) "test-ns-hook"))]
-        ((var-get hook))
-        (test-vars (find-tests-in-namespace ns)))
-      (test/do-report {:type :end-test-ns, :ns ns})
-      @test/*report-counters*)))
+(defn test-ns
+  ([ns] (test-ns ns (constantly true)))
+  ([ns pred]
+   (let [ns (the-ns ns)]
+     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
+       (test/do-report {:type :begin-test-ns, :ns ns})
+       (if-let [hook (find-var (symbol (str (ns-name ns)) "test-ns-hook"))]
+         ((var-get hook))
+         (test-vars (filter pred (find-tests-in-namespace ns))))
+       (test/do-report {:type :end-test-ns, :ns ns})
+       @test/*report-counters*))))
 
-(defn test-dir [dir]
-  (apply merge-with + (map test-ns (require-namespaces-in-dir dir))))
+(defn test-dir
+  ([dir] (test-dir dir (constantly true)))
+  ([dir pred]
+   (->> (require-namespaces-in-dir dir)
+        (map #(test-ns % pred))
+        (apply merge-with +))))
 
-(defn run-tests [dir]
-  (test/do-report {:type :begin-test-run})
-  (let [counters (test-dir dir)]
-    (test/do-report (assoc counters :type :summary))))
+(defn run-tests
+  ([dir] (run-tests dir (constantly true)))
+  ([dir pred]
+   (test/do-report {:type :begin-test-run})
+   (let [counters (test-dir dir pred)]
+     (test/do-report (assoc counters :type :summary)))))
