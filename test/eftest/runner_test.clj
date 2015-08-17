@@ -1,6 +1,6 @@
-(ns eftest.core-test
+(ns eftest.runner-test
   (:require [clojure.test :refer :all]
-            [eftest.core :refer :all]))
+            [eftest.runner :as eftest]))
 
 (deftest a-test
   (testing "FIXME, I fail."

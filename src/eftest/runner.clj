@@ -1,4 +1,4 @@
-(ns eftest.core
+(ns eftest.runner
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]))
