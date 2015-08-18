@@ -1,5 +1,6 @@
 (ns eftest.report.pretty
   (:require [clojure.test :as test]
+            [clojure.stacktrace :as stack]
             [io.aviso.ansi :as ansi]))
 
 (def test-report test/report)
@@ -24,7 +25,18 @@
     (println "expected:" (pr-str expected))
     (println "  actual:" (pr-str actual))))
 
-(defmethod report :error [m] (test-report m))
+(defmethod report :error [{:keys [message expected actual] :as m}]
+  (test/with-test-out
+   (test/inc-report-counter :error)
+   (newline)
+   (println (str (ansi/red "ERROR") " in") (testing-vars-str m))
+   (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
+   (when message (println message))
+   (println "expected:" (pr-str expected))
+   (print "  actual: ")
+   (if (instance? Throwable actual)
+     (stack/print-cause-trace actual test/*stack-trace-depth*)
+     (prn actual))))
 
 (defmethod report :summary [{:keys [test pass fail error]}]
   (let [total (+ pass fail error)
