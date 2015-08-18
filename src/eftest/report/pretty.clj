@@ -14,4 +14,10 @@
 
 (defmethod report :error [m] (test-report m))
 
-(defmethod report :summary [m] (test-report m))
+(defmethod report :summary [{:keys [test pass fail error]}]
+  (let [total (+ pass fail error)
+        color (if (= pass total) ansi/green ansi/red)]
+    (test/with-test-out
+      (newline)
+      (println "Ran" test "tests containing" total "assertions.")
+      (println (color (str fail " failures, " error " errors."))))))
