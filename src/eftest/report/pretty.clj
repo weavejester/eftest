@@ -10,7 +10,15 @@
 
 (defmethod report :pass [m] (test-report m))
 
-(defmethod report :fail [m] (test-report m))
+(defmethod report :fail [{:keys [message expected actual] :as m}]
+  (test/with-test-out
+    (test/inc-report-counter :fail)
+    (newline)
+    (println (str (ansi/red "FAIL") " in") (test/testing-vars-str m))
+    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
+    (when message (println message))
+    (println "expected:" (pr-str expected))
+    (println "  actual:" (pr-str actual))))
 
 (defmethod report :error [m] (test-report m))
 
