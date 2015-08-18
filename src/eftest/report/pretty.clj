@@ -1,7 +1,8 @@
 (ns eftest.report.pretty
   (:require [clojure.test :as test]
-            [clojure.stacktrace :as stack]
-            [io.aviso.ansi :as ansi]))
+            [io.aviso.ansi :as ansi]
+            [io.aviso.exception :as exception]
+            [io.aviso.repl :as repl]))
 
 (defn testing-vars-str [{:keys [file line]}]
   (str (ansi/bold (-> test/*testing-vars* first str (subs 2)))
@@ -34,7 +35,8 @@
    (println "expected:" (pr-str expected))
    (print "  actual: ")
    (if (instance? Throwable actual)
-     (stack/print-cause-trace actual test/*stack-trace-depth*)
+     (binding [exception/*traditional* true]
+       (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
      (prn actual))))
 
 (defmethod report :summary [{:keys [test pass fail error]}]
