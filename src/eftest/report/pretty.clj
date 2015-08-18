@@ -34,14 +34,15 @@
     (doseq [[actual [a b]] (diff-all expected actuals)]
       (println "expected:" (puget/cprint-str expected))
       (println "  actual:" (puget/cprint-str actual))
-      (print "    diff:")
-      (if a
-        (do (print " - ")
-            (puget/cprint a)
-            (print "          + "))
-        (print " + "))
-      (if b
-        (puget/cprint b)))))
+      (when (and (not= expected a) (not= actual b))
+        (print "    diff:")
+        (if a
+          (do (print " - ")
+              (puget/cprint a)
+              (print "          + "))
+          (print " + "))
+        (if b
+          (puget/cprint b))))))
 
 (defn- predicate-fail-report [{:keys [expected actual]}]
   (println "expected:" (puget/cprint-str expected))
