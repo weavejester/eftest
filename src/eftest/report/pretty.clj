@@ -1,5 +1,6 @@
 (ns eftest.report.pretty
   (:require [clojure.test :as test]
+            [clojure.data :as data]
             [io.aviso.ansi :as ansi]
             [io.aviso.exception :as exception]
             [io.aviso.repl :as repl]
@@ -25,6 +26,27 @@
          (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
          " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))
 
+(defn- diff-all [expected actuals]
+  (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
+
+(defn- equals-fail-report [{:keys [actual]}]
+  (let [[_ [_ expected & actuals]] actual]
+    (doseq [[actual [a b]] (diff-all expected actuals)]
+      (println "expected:" (puget/cprint-str expected))
+      (println "  actual:" (puget/cprint-str actual))
+      (print "    diff:")
+      (if a
+        (do (print " - ")
+            (puget/cprint a)
+            (print "          + "))
+        (print " + "))
+      (if b
+        (puget/cprint b)))))
+
+(defn- predicate-fail-report [{:keys [expected actual]}]
+  (println "expected:" (puget/cprint-str expected))
+  (println "  actual:" (puget/cprint-str actual)))
+
 (defmulti report :type)
 
 (defmethod report :default [m])
@@ -32,15 +54,16 @@
 (defmethod report :pass [m]
   (test/with-test-out (test/inc-report-counter :pass)))
 
-(defmethod report :fail [{:keys [message expected actual] :as m}]
+(defmethod report :fail [{:keys [message expected] :as m}]
   (test/with-test-out
     (test/inc-report-counter :fail)
     (newline)
     (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-vars-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
-    (println "expected:" (puget/cprint-str expected))
-    (println "  actual:" (puget/cprint-str actual))))
+    (if (= (first expected) '=)
+      (equals-fail-report m)
+      (predicate-fail-report m))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
