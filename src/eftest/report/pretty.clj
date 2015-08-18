@@ -3,8 +3,6 @@
             [clojure.stacktrace :as stack]
             [io.aviso.ansi :as ansi]))
 
-(def test-report test/report)
-
 (defn testing-vars-str [{:keys [file line]}]
   (str (ansi/bold (-> test/*testing-vars* first str (subs 2)))
        " (" file ":" line ")"))
@@ -13,7 +11,8 @@
 
 (defmethod report :default [m])
 
-(defmethod report :pass [m] (test-report m))
+(defmethod report :pass [m]
+  (test/with-test-out (test/inc-report-counter :pass)))
 
 (defmethod report :fail [{:keys [message expected actual] :as m}]
   (test/with-test-out
