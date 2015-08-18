@@ -4,6 +4,10 @@
 
 (def test-report test/report)
 
+(defn testing-vars-str [{:keys [file line]}]
+  (str (ansi/bold (-> test/*testing-vars* first str (subs 2)))
+       " (" file ":" line ")"))
+
 (defmulti report :type)
 
 (defmethod report :default [m])
@@ -14,7 +18,7 @@
   (test/with-test-out
     (test/inc-report-counter :fail)
     (newline)
-    (println (str (ansi/red "FAIL") " in") (test/testing-vars-str m))
+    (println (str (ansi/red "FAIL") " in") (testing-vars-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (println "expected:" (pr-str expected))
