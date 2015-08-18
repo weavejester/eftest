@@ -10,10 +10,9 @@
    :message        ansi/italic-font
    :property       ansi/bold-font
    :source         ansi/italic-font
-   :namespace-name ansi/reset-font
    :function-name  ansi/blue-font
-   :clojure-frame  ansi/yellow-font
-   :java-frame     ansi/white-font
+   :clojure-frame  ansi/white-font
+   :java-frame     ansi/reset-font
    :omitted-frame  ansi/reset-font
    :pass           ansi/green-font
    :fail           ansi/red-font
@@ -21,9 +20,9 @@
 
 (defn testing-vars-str [{:keys [file line]}]
   (let [test-var (first test/*testing-vars*)]
-    (str (:namespace-name *fonts*) (-> test-var meta :ns ns-name) (:reset *fonts*) "/"
+    (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
          (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
-         (:source *fonts*) " (" file ":" line ")" (:reset *fonts*))))
+         " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))
 
 (defmulti report :type)
 
