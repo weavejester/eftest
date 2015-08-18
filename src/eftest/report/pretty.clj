@@ -2,7 +2,8 @@
   (:require [clojure.test :as test]
             [io.aviso.ansi :as ansi]
             [io.aviso.exception :as exception]
-            [io.aviso.repl :as repl]))
+            [io.aviso.repl :as repl]
+            [puget.printer :as puget]))
 
 (def ^:dynamic *fonts*
   {:exception      ansi/red-font
@@ -38,8 +39,8 @@
     (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-vars-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
-    (println "expected:" (pr-str expected))
-    (println "  actual:" (pr-str actual))))
+    (println "expected:" (puget/cprint-str expected))
+    (println "  actual:" (puget/cprint-str actual))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -48,12 +49,12 @@
    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
    (when message (println message))
-   (println "expected:" (pr-str expected))
+   (println "expected:" (puget/cprint-str expected))
    (print "  actual: ")
    (if (instance? Throwable actual)
      (binding [exception/*traditional* true, exception/*fonts* *fonts*]
        (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
-     (prn actual))))
+     (puget/cprint actual))))
 
 (defmethod report :summary [{:keys [test pass fail error]}]
   (let [total (+ pass fail error)

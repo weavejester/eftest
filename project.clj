@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.namespace "0.2.11"]
                  [progrock "0.1.0"]
-                 [io.aviso/pretty "0.1.18"]])
+                 [io.aviso/pretty "0.1.18"]
+                 [mvxcvi/puget "0.8.1"]])
