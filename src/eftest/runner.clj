@@ -36,7 +36,7 @@
            test-var      (fn [v] (binding [test/report report] (test/test-var v)))]
        (once-fixtures
         (fn []
-          (if (:multithread? opts)
+          (if (:multithread? opts true)
             (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars))
             (doseq [v vars] (each-fixtures #(test-var v))))))))))
 
