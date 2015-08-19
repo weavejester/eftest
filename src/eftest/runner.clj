@@ -26,14 +26,22 @@
 (defn synchronize [f]
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
 
-(defn test-vars [vars]
-  (doseq [[ns vars] (group-by (comp :ns meta) vars)]
-    (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
-          each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
-          report        (synchronize test/report)
-          test-var      (fn [v] (binding [test/report report] (test/test-var v)))]
-      (once-fixtures
-       (fn [] (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars)))))))
+(defn test-vars
+  ([vars] (test-vars vars {}))
+  ([vars opts]
+   (doseq [[ns vars] (group-by (comp :ns meta) vars)]
+     (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
+           each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
+           report        (synchronize test/report)
+           test-var      (fn [v] (binding [test/report report] (test/test-var v)))]
+       (once-fixtures
+        (fn []
+          (if (:multithread? opts)
+            (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars))
+            (doseq [v vars] (each-fixtures #(test-var v))))))))))
+
+(defn- filter-vars [vars opts]
+  (filter (:filter opts (constantly true)) vars))
 
 (defn test-ns
   ([ns] (test-ns ns {}))
@@ -43,7 +51,7 @@
        (test/do-report {:type :begin-test-ns, :ns ns})
        (if-let [hook (find-var (symbol (str (ns-name ns)) "test-ns-hook"))]
          ((var-get hook))
-         (test-vars (filter (:filter opts (constantly true)) (find-tests-in-namespace ns))))
+         (test-vars (filter-vars (find-tests-in-namespace ns) opts) opts))
        (test/do-report {:type :end-test-ns, :ns ns})
        @test/*report-counters*))))
 
@@ -55,7 +63,7 @@
         (apply merge-with +))))
 
 (defn- count-tests [dir opts]
-  (count (filter (:filter opts (constantly true)) (find-tests-in-dir dir))))
+  (count (filter-vars (find-tests-in-dir dir) opts)))
 
 (defn run-tests
   ([dir] (run-tests dir {}))
