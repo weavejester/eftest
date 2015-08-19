@@ -57,7 +57,9 @@
 (defn run-tests
   ([dir] (run-tests dir (constantly true)))
   ([dir pred]
-   (binding [*context* (atom {})]
-     (test/do-report {:type :begin-test-run, :count (count (find-tests-in-dir dir))})
-     (let [counters (test-dir dir pred)]
-       (test/do-report (assoc counters :type :summary))))))
+   (let [start-time (System/currentTimeMillis)]
+     (binding [*context* (atom {})]
+       (test/do-report {:type :begin-test-run, :count (count (find-tests-in-dir dir))})
+       (let [counters (test-dir dir pred)
+             duration (- (System/currentTimeMillis) start-time)]
+         (test/do-report (assoc counters :type :summary, :duration duration)))))))

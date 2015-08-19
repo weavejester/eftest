@@ -80,10 +80,14 @@
        (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
      (puget/cprint actual))))
 
-(defmethod report :summary [{:keys [test pass fail error]}]
+(defmethod report :summary [{:keys [test pass fail error duration]}]
   (let [total (+ pass fail error)
         color (if (= pass total) (:pass *fonts*) (:error *fonts*))]
     (test/with-test-out
       (newline)
-      (println "Ran" test "tests containing" total "assertions.")
-      (println (str color fail " failures, " error " errors." (:reset *fonts*))))))
+      (println "Ran" test "tests in" duration "ms")
+      (println (str color
+                    total " assertions, "
+                    fail " failures, "
+                    error " errors."
+                    (:reset *fonts*))))))
