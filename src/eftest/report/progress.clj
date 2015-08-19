@@ -6,13 +6,16 @@
 
 (def ^:private clear-line (apply str "\r" (repeat 80 " ")))
 
+(defn print-progress [context]
+  (prog/print (:bar context)))
+
 (defmulti report :type)
 
 (defmethod report :default [m])
 
 (defmethod report :begin-test-run [m]
   (test/with-test-out
-    (prog/print (reset! runner/*context* (prog/progress-bar (:count m))))))
+    (print-progress (reset! runner/*context* {:bar (prog/progress-bar (:count m))}))))
 
 (defmethod report :pass [m]
   (pretty/report m))
@@ -22,20 +25,20 @@
     (print clear-line)
     (pretty/report m)
     (newline)
-    (prog/print @runner/*context*)))
+    (print-progress @runner/*context*)))
 
 (defmethod report :error [m]
   (test/with-test-out
     (print clear-line)
     (pretty/report m)
     (newline)
-    (prog/print @runner/*context*)))
+    (print-progress @runner/*context*)))
 
 (defmethod report :end-test-var [m]
   (test/with-test-out
-    (prog/print (swap! runner/*context* prog/tick))))
+    (print-progress (swap! runner/*context* update-in [:bar] prog/tick))))
 
 (defmethod report :summary [m]
   (test/with-test-out
-    (prog/print (swap! runner/*context* prog/done))
+    (print-progress (swap! runner/*context* update-in [:bar] prog/done))
     (pretty/report m)))
