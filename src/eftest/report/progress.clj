@@ -6,8 +6,22 @@
 
 (def ^:private clear-line (apply str "\r" (repeat 80 " ")))
 
-(defn print-progress [context]
-  (prog/print (:bar context)))
+(defn- colored-format [state]
+  (str ":progress/:total   :percent% ["
+       (if state
+         (str (pretty/*fonts* state) ":bar" (pretty/*fonts* :reset))
+         ":bar")
+       "]  ETA: :remaining"))
+
+(defn- print-progress [{:keys [bar state]}]
+  (prog/print bar {:format (colored-format state)}))
+
+(defn- set-state [old-state new-state]
+  (case [old-state new-state]
+    [nil   :pass]  :pass
+    [:pass :fail]  :fail
+    [:fail :error] :error
+    old-state))
 
 (defmulti report :type)
 
@@ -18,21 +32,23 @@
     (print-progress (reset! runner/*context* {:bar (prog/progress-bar (:count m))}))))
 
 (defmethod report :pass [m]
-  (pretty/report m))
+  (test/with-test-out
+    (pretty/report m)
+    (print-progress (swap! runner/*context* update-in [:state] set-state :pass))))
 
 (defmethod report :fail [m]
   (test/with-test-out
     (print clear-line)
     (pretty/report m)
     (newline)
-    (print-progress @runner/*context*)))
+    (print-progress (swap! runner/*context* update-in [:state] set-state :fail))))
 
 (defmethod report :error [m]
   (test/with-test-out
     (print clear-line)
     (pretty/report m)
     (newline)
-    (print-progress @runner/*context*)))
+    (print-progress (swap! runner/*context* update-in [:state] set-state :error))))
 
 (defmethod report :end-test-var [m]
   (test/with-test-out
