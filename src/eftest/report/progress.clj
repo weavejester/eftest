@@ -18,4 +18,5 @@
 
 (defmethod report :summary [m]
   (test/with-test-out
-    (prog/print (swap! runner/*context* prog/done))))
+    (prog/print (swap! runner/*context* prog/done))
+    (pretty/report m)))
