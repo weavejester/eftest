@@ -45,9 +45,12 @@
         (map #(test-ns % pred))
         (apply merge-with +))))
 
+(declare ^:dynamic *context*)
+
 (defn run-tests
   ([dir] (run-tests dir (constantly true)))
   ([dir pred]
-   (test/do-report {:type :begin-test-run})
-   (let [counters (test-dir dir pred)]
-     (test/do-report (assoc counters :type :summary)))))
+   (binding [*context* (atom {})]
+     (test/do-report {:type :begin-test-run, :count (count (find-tests-in-dir dir))})
+     (let [counters (test-dir dir pred)]
+       (test/do-report (assoc counters :type :summary))))))
