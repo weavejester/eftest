@@ -34,32 +34,32 @@
        (fn [] (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars)))))))
 
 (defn test-ns
-  ([ns] (test-ns ns (constantly true)))
-  ([ns pred]
+  ([ns] (test-ns ns {}))
+  ([ns opts]
    (let [ns (the-ns ns)]
      (binding [test/*report-counters* (ref test/*initial-report-counters*)]
        (test/do-report {:type :begin-test-ns, :ns ns})
        (if-let [hook (find-var (symbol (str (ns-name ns)) "test-ns-hook"))]
          ((var-get hook))
-         (test-vars (filter pred (find-tests-in-namespace ns))))
+         (test-vars (filter (:filter opts (constantly true)) (find-tests-in-namespace ns))))
        (test/do-report {:type :end-test-ns, :ns ns})
        @test/*report-counters*))))
 
 (defn test-dir
-  ([dir] (test-dir dir (constantly true)))
-  ([dir pred]
+  ([dir] (test-dir dir {}))
+  ([dir opts]
    (->> (require-namespaces-in-dir dir)
-        (map #(test-ns % pred))
+        (map #(test-ns % opts))
         (apply merge-with +))))
 
 (declare ^:dynamic *context*)
 
 (defn run-tests
-  ([dir] (run-tests dir (constantly true)))
-  ([dir pred]
+  ([dir] (run-tests dir {}))
+  ([dir opts]
    (let [start-time (System/currentTimeMillis)]
      (binding [*context* (atom {})]
        (test/do-report {:type :begin-test-run, :count (count (find-tests-in-dir dir))})
-       (let [counters (test-dir dir pred)
+       (let [counters (test-dir dir opts)
              duration (- (System/currentTimeMillis) start-time)]
          (test/do-report (assoc counters :type :summary, :duration duration)))))))
