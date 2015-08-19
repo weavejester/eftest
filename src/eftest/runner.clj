@@ -1,7 +1,9 @@
 (ns eftest.runner
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
-            [clojure.tools.namespace.find :as find]))
+            [clojure.tools.namespace.find :as find]
+            [eftest.report :as report]
+            [eftest.report.progress :as progress]))
 
 (defn- fixed-inc-report-counter [name]
   (when test/*report-counters*
@@ -52,8 +54,6 @@
         (map #(test-ns % opts))
         (apply merge-with +))))
 
-(declare ^:dynamic *context*)
-
 (defn- count-tests [dir opts]
   (count (filter (:filter opts (constantly true)) (find-tests-in-dir dir))))
 
@@ -61,7 +61,8 @@
   ([dir] (run-tests dir {}))
   ([dir opts]
    (let [start-time (System/currentTimeMillis)]
-     (binding [*context* (atom {})]
+     (binding [report/*context* (atom {})
+               test/report      (:report opts progress/report)]
        (test/do-report {:type :begin-test-run, :count (count-tests dir opts)})
        (let [counters (test-dir dir opts)
              duration (- (System/currentTimeMillis) start-time)]

@@ -1,6 +1,6 @@
 (ns eftest.report.progress
   (:require [clojure.test :as test]
-            [eftest.runner :as runner]
+            [eftest.report :as report]
             [eftest.report.pretty :as pretty]
             [progrock.core :as prog]))
 
@@ -30,32 +30,32 @@
 (defmethod report :begin-test-run [m]
   (test/with-test-out
     (newline)
-    (print-progress (reset! runner/*context* {:bar (prog/progress-bar (:count m))}))))
+    (print-progress (reset! report/*context* {:bar (prog/progress-bar (:count m))}))))
 
 (defmethod report :pass [m]
   (test/with-test-out
     (pretty/report m)
-    (print-progress (swap! runner/*context* update-in [:state] set-state :pass))))
+    (print-progress (swap! report/*context* update-in [:state] set-state :pass))))
 
 (defmethod report :fail [m]
   (test/with-test-out
     (print clear-line)
     (binding [pretty/*divider* "\r"] (pretty/report m))
     (newline)
-    (print-progress (swap! runner/*context* update-in [:state] set-state :fail))))
+    (print-progress (swap! report/*context* update-in [:state] set-state :fail))))
 
 (defmethod report :error [m]
   (test/with-test-out
     (print clear-line)
     (binding [pretty/*divider* "\r"] (pretty/report m))
     (newline)
-    (print-progress (swap! runner/*context* update-in [:state] set-state :error))))
+    (print-progress (swap! report/*context* update-in [:state] set-state :error))))
 
 (defmethod report :end-test-var [m]
   (test/with-test-out
-    (print-progress (swap! runner/*context* update-in [:bar] prog/tick))))
+    (print-progress (swap! report/*context* update-in [:bar] prog/tick))))
 
 (defmethod report :summary [m]
   (test/with-test-out
-    (print-progress (swap! runner/*context* update-in [:bar] prog/done))
+    (print-progress (swap! report/*context* update-in [:bar] prog/done))
     (pretty/report m)))
