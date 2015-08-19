@@ -80,6 +80,9 @@
        (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
      (puget/cprint actual))))
 
+(defn- pluralize [word count]
+  (if (= count 1) word (str word "s")))
+
 (defmethod report :summary [{:keys [test pass fail error duration]}]
   (let [total (+ pass fail error)
         color (if (= pass total) (:pass *fonts*) (:error *fonts*))]
@@ -87,7 +90,7 @@
       (newline)
       (println "Ran" test "tests in" duration "ms")
       (println (str color
-                    total " assertions, "
-                    fail " failures, "
-                    error " errors."
+                    total " " (pluralize "assertion" total) ", "
+                    fail  " " (pluralize "failure" fail) ", "
+                    error " " (pluralize "error" error) "."
                     (:reset *fonts*))))))
