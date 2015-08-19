@@ -83,12 +83,15 @@
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
 
+(defn- format-interval [duration]
+  (format "%.3f seconds" (double (/ duration 1000))))
+
 (defmethod report :summary [{:keys [test pass fail error duration]}]
   (let [total (+ pass fail error)
         color (if (= pass total) (:pass *fonts*) (:error *fonts*))]
     (test/with-test-out
       (newline)
-      (println "Ran" test "tests in" duration "ms")
+      (println "Ran" test "tests in" (format-interval duration))
       (println (str color
                     total " " (pluralize "assertion" total) ", "
                     fail  " " (pluralize "failure" fail) ", "
