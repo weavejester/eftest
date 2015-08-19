@@ -54,12 +54,15 @@
 
 (declare ^:dynamic *context*)
 
+(defn- count-tests [dir opts]
+  (count (filter (:filter opts (constantly true)) (find-tests-in-dir dir))))
+
 (defn run-tests
   ([dir] (run-tests dir {}))
   ([dir opts]
    (let [start-time (System/currentTimeMillis)]
      (binding [*context* (atom {})]
-       (test/do-report {:type :begin-test-run, :count (count (find-tests-in-dir dir))})
+       (test/do-report {:type :begin-test-run, :count (count-tests dir opts)})
        (let [counters (test-dir dir opts)
              duration (- (System/currentTimeMillis) start-time)]
          (test/do-report (assoc counters :type :summary, :duration duration)))))))
