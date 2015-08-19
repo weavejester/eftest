@@ -20,6 +20,8 @@
    :fail           ansi/red-font
    :error          ansi/red-font})
 
+(def ^:dynamic *divider* "\n")
+
 (defn testing-vars-str [{:keys [file line]}]
   (let [test-var (first test/*testing-vars*)]
     (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
@@ -58,7 +60,7 @@
 (defmethod report :fail [{:keys [message expected] :as m}]
   (test/with-test-out
     (test/inc-report-counter :fail)
-    (newline)
+    (print *divider*)
     (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-vars-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
@@ -69,7 +71,7 @@
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
    (test/inc-report-counter :error)
-   (newline)
+   (print *divider*)
    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
    (when message (println message))
@@ -90,7 +92,7 @@
   (let [total (+ pass fail error)
         color (if (= pass total) (:pass *fonts*) (:error *fonts*))]
     (test/with-test-out
-      (newline)
+      (print *divider*)
       (println "Ran" test "tests in" (format-interval duration))
       (println (str color
                     total " " (pluralize "assertion" total) ", "

@@ -29,6 +29,7 @@
 
 (defmethod report :begin-test-run [m]
   (test/with-test-out
+    (newline)
     (print-progress (reset! runner/*context* {:bar (prog/progress-bar (:count m))}))))
 
 (defmethod report :pass [m]
@@ -39,14 +40,14 @@
 (defmethod report :fail [m]
   (test/with-test-out
     (print clear-line)
-    (pretty/report m)
+    (binding [pretty/*divider* "\r"] (pretty/report m))
     (newline)
     (print-progress (swap! runner/*context* update-in [:state] set-state :fail))))
 
 (defmethod report :error [m]
   (test/with-test-out
     (print clear-line)
-    (pretty/report m)
+    (binding [pretty/*divider* "\r"] (pretty/report m))
     (newline)
     (print-progress (swap! runner/*context* update-in [:state] set-state :error))))
 
