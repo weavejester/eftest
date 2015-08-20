@@ -8,6 +8,20 @@ To install, add the following to your project `:dependencies`:
 
     [eftest "0.1.0-SNAPSHOT"]
 
+## Screenshots
+
+When all the tests pass, it looks like this:
+
+![Passing example](doc/passing-example.png)
+
+When a test fails, it looks like:
+
+![Failing example](doc/failing-example.png)
+
+And when a test throws an exception, it looks like:
+
+![Erroring example](doc/erroring-example.png)
+
 ## Usage
 
 Eftest has two main functions: `find-tests` and `run-tests`.
@@ -49,20 +63,6 @@ Or maybe you want the old Clojure test reporter:
 ```clojure
 user=> (run-tests (find-tests "test") {:report clojure.test/report})
 ```
-
-## Screenshots
-
-When all the tests pass, it looks like this:
-
-![Passing example](doc/passing-example.png)
-
-When a test fails, it looks like:
-
-![Failing example](doc/failing-example.png)
-
-And when a test throws an exception, it looks like:
-
-![Erroring example](doc/erroring-example.png)
 
 ## License
 
