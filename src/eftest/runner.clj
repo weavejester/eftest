@@ -64,10 +64,10 @@
   (find-tests-in-namespace ns))
 
 (defmethod find-tests clojure.lang.Symbol [sym]
-  (if (namespace sym) [(find-var sym)] (find-tests-in-namespace sym)))
+  (if (namespace sym) (find-tests (find-var sym)) (find-tests-in-namespace sym)))
 
 (defmethod find-tests clojure.lang.Var [var]
-  [var])
+  (if (-> var meta :test) (list var)))
 
 (defmethod find-tests java.io.File [dir]
   (find-tests-in-dir dir))
