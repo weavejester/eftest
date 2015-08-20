@@ -22,7 +22,7 @@
 
 (def ^:dynamic *divider* "\n")
 
-(defn testing-vars-str [{:keys [file line]}]
+(defn- testing-vars-str [{:keys [file line]}]
   (let [test-var (first test/*testing-vars*)]
     (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
          (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
