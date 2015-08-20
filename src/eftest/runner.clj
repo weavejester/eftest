@@ -61,7 +61,8 @@
   ([tests] (run-tests tests {}))
   ([tests opts]
    (let [start-time (System/currentTimeMillis)
-         vars       (find-tests tests)]
+         var-filter (:filter opts (constantly true))
+         vars       (filter var-filter (find-tests tests))]
      (binding [report/*context* (atom {})
                test/report      (:report opts progress/report)]
        (test/do-report {:type :begin-test-run, :count (count vars)})
