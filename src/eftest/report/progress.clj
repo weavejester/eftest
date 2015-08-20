@@ -19,7 +19,10 @@
 (defn- set-state [old-state new-state]
   (case [old-state new-state]
     [nil   :pass]  :pass
+    [nil   :fail]  :fail
     [:pass :fail]  :fail
+    [nil   :error] :error
+    [:pass :error] :error
     [:fail :error] :error
     old-state))
 
