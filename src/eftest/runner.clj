@@ -44,6 +44,9 @@
 (defn- require-namespaces-in-dir [dir]
   (map (fn [ns] (require ns) (find-ns ns)) (find/find-namespaces-in-dir (io/file dir))))
 
+(defn- find-tests-in-namespace [ns]
+  (->> ns ns-interns vals (filter (comp :test meta))))
+
 (defmulti find-tests type)
 
 (derive clojure.lang.Namespace ::namespace)
@@ -52,7 +55,7 @@
 (derive java.lang.String       ::directory)
 
 (defmethod find-tests ::namespace [ns]
-  (->> ns ns-interns vals (filter (comp :test meta))))
+  (find-tests-in-namespace ns))
 
 (defmethod find-tests ::directory [dir]
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
