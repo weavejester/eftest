@@ -41,7 +41,7 @@
         (if a
           (do (print " - ")
               (puget/cprint a)
-              (print "          + "))
+              (if b (print "          + ")))
           (print " + "))
         (if b
           (puget/cprint b))))))
