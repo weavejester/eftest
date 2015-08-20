@@ -1,4 +1,5 @@
 (ns eftest.runner
+  "Functions to run tests writting with clojure.test or compatible libraries."
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]
@@ -50,7 +51,11 @@
 (defn- find-tests-in-dir [dir]
   (mapcat find-tests-in-namespace (require-namespaces-in-dir dir)))
 
-(defmulti find-tests type)
+(defmulti find-tests
+  "Find test vars specified by a source. The source may be a var, symbol
+  namespace or directory path, or a collection of any of the previous types."
+  {:arglists '([source])}
+  type)
 
 (defmethod find-tests clojure.lang.IPersistentCollection [coll]
   (mapcat find-tests coll))
@@ -71,11 +76,15 @@
   (find-tests-in-dir (io/file dir)))
 
 (defn run-tests
-  ([tests] (run-tests tests {}))
-  ([tests opts]
-   (let [start-time (System/currentTimeMillis)
-         var-filter (:filter opts (constantly true))
-         vars       (filter var-filter (find-tests tests))]
+  "Run the supplied test vars. Accepts the following options:
+
+    :multithread? - true if the tests should run in multiple threads
+                    (defaults to true)
+    :report       - the test reporting function to use
+                    (defaults to eftest.report.progress/report)"
+  ([vars] (run-tests vars {}))
+  ([vars opts]
+   (let [start-time (System/currentTimeMillis)]
      (binding [report/*context* (atom {})
                test/report      (:report opts progress/report)]
        (test/do-report {:type :begin-test-run, :count (count vars)})

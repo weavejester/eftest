@@ -1,4 +1,5 @@
 (ns eftest.report.pretty
+  "A test reporter with an emphasis on pretty formatting."
   (:require [clojure.test :as test]
             [clojure.data :as data]
             [io.aviso.ansi :as ansi]
@@ -7,6 +8,7 @@
             [puget.printer :as puget]))
 
 (def ^:dynamic *fonts*
+  "The ANSI codes to use for reporting on tests."
   {:exception      ansi/red-font
    :reset          ansi/reset-font
    :message        ansi/italic-font
@@ -20,7 +22,9 @@
    :fail           ansi/red-font
    :error          ansi/red-font})
 
-(def ^:dynamic *divider* "\n")
+(def ^:dynamic *divider*
+  "The divider to use between test failure and error reports."
+  "\n")
 
 (defn- testing-vars-str [{:keys [file line]}]
   (let [test-var (first test/*testing-vars*)]
@@ -50,7 +54,10 @@
   (println "expected:" (puget/cprint-str expected))
   (println "  actual:" (puget/cprint-str actual)))
 
-(defmulti report :type)
+(defmulti report
+  "A reporting function compatible with clojure.test. Uses ANSI colors and
+  terminal formatting to produce readable and 'pretty' reports."
+  :type)
 
 (defmethod report :default [m])
 
