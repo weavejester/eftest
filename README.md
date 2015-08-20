@@ -8,6 +8,48 @@ To install, add the following to your project `:dependencies`:
 
     [eftest "0.1.0-SNAPSHOT"]
 
+## Usage
+
+Eftest has two main functions: `find-tests` and `run-tests`.
+
+The `find-tests` function searches a source, which can be a namespace,
+directory path, symbol, var, or a collection of any of the previous.
+It returns a collection of test vars found in the source.
+
+The `run-tests` function accepts a collection of test vars and runs
+them, delivering a report on the tests as it goes.
+
+Typically these two functions are used together:
+
+```clojure
+user=> (require '[eftest.runner :refer [find-tests run-tests]])
+nil
+user=> (run-tests (find-tests "test"))
+...
+```
+
+The above example will run all tests found in the "test" directory.
+
+By default Eftest runs tests in parallel, which can cause issues with
+tests that expect to be single-threaded. To disable this:
+
+```clojure
+user=> (run-tests (find-tests "test") {:multithread? false})
+```
+
+You can also change the reporting function used. For example, if you
+want a colorized reporter but without the progress bar:
+
+```clojure
+user=> (run-tests (find-tests "test") {:report eftest.report.pretty/report})
+```
+
+Or maybe you want the old Clojure test reporter:
+
+```clojure
+user=> (run-tests (find-tests "test") {:report clojure.test/report})
+```
+
 ## Screenshots
 
 When all the tests pass, it looks like this:
