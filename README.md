@@ -6,7 +6,7 @@ Eftest is a fast and pretty Clojure test runner.
 
 To install, add the following to your project `:dependencies`:
 
-    [eftest "0.1.0"]
+    [eftest "0.1.1"]
 
 ## Screenshots
 
