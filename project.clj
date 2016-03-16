@@ -3,8 +3,8 @@
   :url "https://github.com/weavejester/eftest"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/tools.namespace "0.2.11"]
                  [progrock "0.1.1"]
-                 [io.aviso/pretty "0.1.18"]
-                 [mvxcvi/puget "0.8.1"]])
+                 [io.aviso/pretty "0.1.24"]
+                 [mvxcvi/puget "1.0.0"]])
