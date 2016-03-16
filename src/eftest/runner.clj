@@ -6,13 +6,6 @@
             [eftest.report :as report]
             [eftest.report.progress :as progress]))
 
-(defn- fixed-inc-report-counter [name]
-  (when test/*report-counters*
-    (dosync (commute test/*report-counters* update-in [name] (fnil inc 0)))))
-
-;; Backport fix for CLJ-1528 in versions of Clojure pre-1.7
-(alter-var-root #'test/inc-report-counter (constantly fixed-inc-report-counter))
-
 (defmethod test/report :begin-test-run [_])
 
 (defn- synchronize [f]
