@@ -11,6 +11,9 @@
 (defn- synchronize [f]
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
 
+(defn- synchronized? [v]
+  (-> v meta :eftest/synchronized true?))
+
 (defn- test-vars [ns vars opts]
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
@@ -19,7 +22,9 @@
     (once-fixtures
      (fn []
        (if (:multithread? opts true)
-         (dorun (pmap (bound-fn [v] (each-fixtures #(test-var v))) vars))
+         (let [test (bound-fn [v] (each-fixtures #(test-var v)))]
+           (dorun (->> vars (filter synchronized?) (map test)))
+           (dorun (->> vars (remove synchronized?) (pmap test))))
          (doseq [v vars] (each-fixtures #(test-var v))))))))
 
 (defn- test-ns [ns vars opts]
