@@ -45,10 +45,19 @@ user=> (run-tests (find-tests "test"))
 The above example will run all tests found in the "test" directory.
 
 By default Eftest runs tests in parallel, which can cause issues with
-tests that expect to be single-threaded. To disable this:
+tests that expect to be single-threaded. To disable this, set the
+`:multithread?` option to `false`:
 
 ```clojure
 user=> (run-tests (find-tests "test") {:multithread? false})
+```
+
+Alternatively, you can add the `:eftest/synchronized` key as metadata
+to any tests you want to force to be executed in serial:
+
+```clojure
+(deftest ^:eftest/synchronized a-test
+  (is (= 1 1)))
 ```
 
 You can also change the reporting function used. For example, if you
