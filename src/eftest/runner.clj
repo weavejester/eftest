@@ -84,10 +84,14 @@
   ([vars opts]
    (let [start-time (System/currentTimeMillis)]
      (if (empty? vars)
-       (println "No tests found.")
+       (do
+         (println "No tests found.")
+         test/*initial-report-counters*)
        (binding [report/*context* (atom {})
                  test/report      (:report opts progress/report)]
          (test/do-report {:type :begin-test-run, :count (count vars)})
          (let [counters (test-all vars opts)
-               duration (- (System/currentTimeMillis) start-time)]
-           (test/do-report (assoc counters :type :summary, :duration duration))))))))
+               duration (- (System/currentTimeMillis) start-time)
+               summary (assoc counters :type :summary, :duration duration)]
+           (test/do-report summary)
+           summary))))))
