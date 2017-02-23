@@ -1,5 +1,5 @@
 (ns eftest.runner
-  "Functions to run tests writting with clojure.test or compatible libraries."
+  "Functions to run tests written with clojure.test or compatible libraries."
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]
