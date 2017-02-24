@@ -75,7 +75,7 @@ user=> (run-tests (find-tests "test") {:report clojure.test/report})
 
 ## License
 
-Copyright © 2015 James Reeves
+Copyright © 2017 James Reeves
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
