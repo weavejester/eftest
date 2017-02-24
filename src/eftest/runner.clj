@@ -82,7 +82,7 @@
                     (defaults to eftest.report.progress/report)"
   ([vars] (run-tests vars {}))
   ([vars opts]
-   (let [start-time (System/currentTimeMillis)]
+   (let [start-time (System/nanoTime)]
      (if (empty? vars)
        (do
          (println "No tests found.")
@@ -91,7 +91,7 @@
                  test/report      (:report opts progress/report)]
          (test/do-report {:type :begin-test-run, :count (count vars)})
          (let [counters (test-all vars opts)
-               duration (- (System/currentTimeMillis) start-time)
-               summary (assoc counters :type :summary, :duration duration)]
+               duration (/ (- (System/nanoTime) start-time) 1e6)
+               summary  (assoc counters :type :summary, :duration duration)]
            (test/do-report summary)
            summary))))))
