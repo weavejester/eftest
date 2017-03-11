@@ -93,7 +93,7 @@
   (if (= count 1) word (str word "s")))
 
 (defn- format-interval [duration]
-  (format "%.3f seconds" (double (/ duration 1e9))))
+  (format "%.3f seconds" (double (/ duration 1e3))))
 
 (defmethod report :summary [{:keys [test pass fail error duration]}]
   (let [total (+ pass fail error)
