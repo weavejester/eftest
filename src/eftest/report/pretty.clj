@@ -71,7 +71,8 @@
     (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-vars-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
-    (if (= (first expected) '=)
+    (if (and (sequential? expected)
+             (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))))
 
