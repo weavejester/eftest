@@ -67,7 +67,13 @@ want a colorized reporter but without the progress bar:
 user=> (run-tests (find-tests "test") {:report eftest.report.pretty/report})
 ```
 
-Or maybe you want the old Clojure test reporter:
+Or JUnit output:
+
+```clojure
+user=> (run-tests (find-tests "test") {:report clojure.report.junit/report})
+```
+
+Or maybe you just want the old Clojure test reporter:
 
 ```clojure
 user=> (run-tests (find-tests "test") {:report clojure.test/report})
