@@ -86,7 +86,7 @@
   (swap! *context* assoc ::test-results {})
   (test/with-test-out
     (println "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-    (println "<testsuites>")))
+    (print "<testsuites>")))
 
 (defmethod report :summary [m]
   (test/with-test-out
