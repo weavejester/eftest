@@ -8,6 +8,11 @@ To install, add the following to your project `:dependencies`:
 
     [eftest "0.2.0"]
 
+Alternatively, if you just want to use Eftest as a `lein test`
+replacement, add the following to your project `:plugins`:
+
+    [lein-eftest "0.2.0"]
+
 ## Screenshots
 
 When all the tests pass, it looks like this:
@@ -23,6 +28,8 @@ And when a test throws an exception, it looks like:
 ![Erroring example](doc/erroring-example.png)
 
 ## Usage
+
+### Library
 
 Eftest has two main functions: `find-tests` and `run-tests`.
 
@@ -77,6 +84,22 @@ Or maybe you just want the old Clojure test reporter:
 
 ```clojure
 user=> (run-tests (find-tests "test") {:report clojure.test/report})
+```
+
+### Plugin
+
+To use the Lein-Eftest plugin, just run:
+
+```sh
+lein eftest
+```
+
+You can customize the reporter and set the concurrency by adding an
+`:eftest` key to your project map:
+
+```clojure
+:eftest {:multithread? false
+         :report clojure.report.junit/report}
 ```
 
 ## License
