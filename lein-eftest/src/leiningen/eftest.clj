@@ -6,9 +6,16 @@
 (def eftest-profile
   {:dependencies '[[eftest "0.2.0"]]})
 
+(defn- report-namespace [project]
+  (-> project :eftest (:report 'eftest.report.progress/report) namespace symbol))
+
+(defn- require-form [project]
+  `(require 'eftest.runner '~(report-namespace project)))
+
 (defn- testing-form [project]
-  (let [paths (vec (:test-paths project))]
-    `(let [summary#   (eftest.runner/run-tests (eftest.runner/find-tests ~paths))
+  (let [paths   (vec (:test-paths project))
+        options (:eftest project {})]
+    `(let [summary#   (eftest.runner/run-tests (eftest.runner/find-tests ~paths) ~options)
            exit-code# (+ (:error summary#) (:fail summary#))]
        (if ~(= :leiningen (:eval-in project))
          exit-code#
@@ -20,7 +27,7 @@
   (let [project (project/merge-profiles project [:leiningen/test :test eftest-profile])
         form    (testing-form project)]
     (try
-      (when-let [n (eval/eval-in-project project form `(require 'eftest.runner))]
+      (when-let [n (eval/eval-in-project project form (require-form project))]
         (when (and (number? n) (pos? n))
           (throw (ex-info "Tests Failed" {:exit-code n}))))
       (catch clojure.lang.ExceptionInfo _
