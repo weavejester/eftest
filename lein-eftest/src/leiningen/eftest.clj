@@ -12,10 +12,9 @@
 (defn- require-form [project]
   `(require 'eftest.runner '~(report-namespace project)))
 
-(defn- testing-form [project]
-  (let [paths   (vec (:test-paths project))
-        options (:eftest project {})]
-    `(let [summary#   (eftest.runner/run-tests (eftest.runner/find-tests ~paths) ~options)
+(defn- testing-form [project test-paths]
+  (let [options (:eftest project {})]
+    `(let [summary#   (eftest.runner/run-tests (eftest.runner/find-tests ~test-paths) ~options)
            exit-code# (+ (:error summary#) (:fail summary#))]
        (if ~(= :leiningen (:eval-in project))
          exit-code#
@@ -23,12 +22,13 @@
 
 (defn eftest
   "Run the project's tests with Eftest."
-  [project]
-  (let [project (project/merge-profiles project [:leiningen/test :test eftest-profile])
-        form    (testing-form project)]
-    (try
-      (when-let [n (eval/eval-in-project project form (require-form project))]
-        (when (and (number? n) (pos? n))
-          (throw (ex-info "Tests Failed" {:exit-code n}))))
-      (catch clojure.lang.ExceptionInfo _
-        (main/abort "Tests failed.")))))
+  ([project] (eftest project (vec (:test-paths project))))
+  ([project test-paths]
+   (let [project (project/merge-profiles project [:leiningen/test :test eftest-profile])
+         form    (testing-form project test-paths)]
+     (try
+       (when-let [n (eval/eval-in-project project form (require-form project))]
+         (when (and (number? n) (pos? n))
+           (throw (ex-info "Tests Failed" {:exit-code n}))))
+       (catch clojure.lang.ExceptionInfo _
+         (main/abort "Tests failed."))))))
