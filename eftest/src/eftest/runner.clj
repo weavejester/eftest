@@ -12,7 +12,8 @@
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
 
 (defn- synchronized? [v]
-  (-> v meta :eftest/synchronized true?))
+  (or (-> v meta :eftest/synchronized true?)
+      (-> v meta :ns meta :eftest/synchronized true?)))
 
 (defn- test-vars [ns vars opts]
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
