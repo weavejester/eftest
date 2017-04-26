@@ -94,6 +94,17 @@ Or maybe you just want the old Clojure test reporter:
 user=> (run-tests (find-tests "test") {:report clojure.test/report})
 ```
 
+If you want to redirect reporting output to a file, use the
+`eftest.report/report-to-file` function:
+
+```clojure
+user=> (require '[clojure.report :refer [report-to-file]])
+nil
+user=> (require '[clojure.report.junit :as ju])
+nil
+user=> (run-tests (find-tests "test") {:report (report-to-file ju/report "test.xml")})
+```
+
 ### Plugin
 
 To use the Lein-Eftest plugin, just run:
