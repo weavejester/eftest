@@ -1,7 +1,24 @@
-(ns eftest.report)
+(ns eftest.report
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [*test-out*]]))
 
 (def ^:dynamic *context*
   "Used by eftest.runner/run-tests to hold a mutable atom that persists for the
   duration of the test run. This atom can be used by reporters to hold
   additional statistics and information during the tests."
   nil)
+
+(defn report-to-file
+  "Wrap a report function so that its output is directed to a file. output-file
+  should be something that can be coerced into a Writer."
+  [report output-file]
+  (let [output-key [::output-files output-file]]
+    (fn [m]
+      (when (= (:type m) :begin-test-run)
+        (swap! *context* assoc-in output-key (io/writer output-file)))
+      (let [writer (get-in @*context* output-key)]
+        (binding [*test-out* writer]
+          (report m))
+        (when (= (:type m) :summary)
+          (swap! *context* update ::output-files dissoc output-file)
+          (.close writer))))))
