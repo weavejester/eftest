@@ -13,12 +13,9 @@
 (defn- require-form [project]
   `(require 'eftest.runner '~(report-namespace project)))
 
-;; Forms copied from leiningen.test
-(def form-for-suppressing-unselected-tests
-  "A function that figures out which vars need to be suppressed based on the
-  given selectors, moves their :test metadata to :leiningen/skipped-test (so
-  that clojure.test won't think they are tests), runs the given function, and
-  then sets the metadata back."
+;; The following three forms are copied from leiningen.test
+
+(def ^:private form-for-suppressing-unselected-tests
   `(fn [namespaces# selectors# func#]
      (let [copy-meta# (fn [var# from-key# to-key#]
                         (if-let [x# (get (meta var#) from-key#)]
@@ -54,7 +51,6 @@
     (for [ns#       ~ns-sym
           [_# var#] (ns-publics ns#)
           :when     (some (fn [[selector# args#]]
-
                             (apply (if (vector? selector#)
                                      (second selector#)
                                      selector#)
@@ -85,7 +81,8 @@
   "Run the project's tests with Eftest."
   [project & tests]
   (let [[nses selectors] (test/read-args tests project)
-        project          (project/merge-profiles project [:leiningen/test :test eftest-profile])
+        profiles         [:leiningen/test :test eftest-profile]
+        project          (project/merge-profiles project profiles)
         form             (testing-form project nses selectors)]
     (try
       (when-let [n (eval/eval-in-project project form (require-form project))]
