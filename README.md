@@ -67,6 +67,14 @@ to any tests you want to force to be executed in serial:
   (is (= 1 1)))
 ```
 
+Or you can synchronize the entire namespace:
+
+```clojure
+(ns ^:eftest/synchronized foo.core-test
+  (:require [clojure.test :refer :all]
+            [foo.core :refer :all]))
+```
+
 You can also change the reporting function used. For example, if you
 want a colorized reporter but without the progress bar:
 
