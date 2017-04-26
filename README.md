@@ -102,6 +102,18 @@ You can customize the reporter and set the concurrency by adding an
          :report clojure.report.junit/report}
 ```
 
+Leiningen test selectors also work. With namespaces:
+
+```sh
+lein eftest foo.bar-test foo.baz-test
+```
+
+And with metadata keywords:
+
+```sh
+lein eftest :integration
+```
+
 ## License
 
 Copyright © 2017 James Reeves
