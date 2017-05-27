@@ -5,9 +5,24 @@
             [clojure.tools.namespace.find :as find]
             [eftest.report :as report]
             [eftest.report.progress :as progress]
-            [eftest.output-capture :as capture]))
+            [eftest.output-capture :as capture])
+            [eftest.report.progress :as progress])
+  (:import [java.util.concurrent Executors ExecutorService]))
 
 (defmethod test/report :begin-test-run [_])
+
+(defn make-threadpool
+  ([] (make-threadpool (.availableProcessors (Runtime/getRuntime))))
+  ([n]
+   (Executors/newFixedThreadPool n)))
+
+(defn tp-pmap
+  [^ExecutorService executor f coll]
+  (map deref
+       (doall
+         (for [e coll
+               :let [^Callable cb (cast Callable (bound-fn [] (f e)))]]
+           (.submit executor cb)))))
 
 (defn- synchronize [f]
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
@@ -15,6 +30,8 @@
 (defn- synchronized? [v]
   (or (-> v meta :eftest/synchronized true?)
       (-> v meta :ns meta :eftest/synchronized true?)))
+
+(def var-threadpool (delay (make-threadpool)))
 
 (defn- test-vars [ns vars {:as opts :keys [catch-out? fail-fast?] :or {catch-out? true}}]
   (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
@@ -41,7 +58,7 @@
        (if (:multithread? opts true)
          (let [test (bound-fn [v] (test-var v))]
            (dorun (->> vars (filter synchronized?) (map test)))
-           (dorun (->> vars (remove synchronized?) (pmap test))))
+           (dorun (->> vars (remove synchronized?) (tp-pmap @var-threadpool test))))
          (doseq [v vars] (test-var v)))))
     (when catch-out?
       (capture/restore-capture capture-context))))
@@ -54,9 +71,12 @@
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 
+(def ns-threadpool (delay (make-threadpool)))
+
 (defn- test-all [vars opts]
   (->> (group-by (comp :ns meta) vars)
-       (map (fn [[ns vars]] (test-ns ns vars opts)))
+       ((if (:multithread? opts true) (partial tp-pmap @ns-threadpool) map)
+         (fn [[ns vars]] (test-ns ns vars opts)))
        (apply merge-with +)))
 
 (defn- require-namespaces-in-dir [dir]
