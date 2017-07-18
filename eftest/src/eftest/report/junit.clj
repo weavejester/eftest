@@ -29,7 +29,7 @@
 (defn test-name [vars]
   (apply str (interpose "." (reverse (map #(:name (meta %)) vars)))))
 
-(defn package-class [name]
+(defn package-class [^String name]
   (let [i (.lastIndexOf name ".")]
     (if (< i 0)
       [nil name]
