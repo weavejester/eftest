@@ -127,3 +127,8 @@
 (defmethod report :error [m]
   (test/inc-report-counter :error)
   (push-result m))
+
+;; Ignore reports from test.check.
+(defmethod report :clojure.test.check.clojure-test/trial [m])
+(defmethod report :clojure.test.check.clojure-test/shrinking [m])
+(defmethod report :clojure.test.check.clojure-test/shrunk [m])
