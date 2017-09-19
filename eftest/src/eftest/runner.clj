@@ -4,7 +4,8 @@
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]
             [eftest.report :as report]
-            [eftest.report.progress :as progress]))
+            [eftest.report.progress :as progress]
+            [eftest.output-capture :as capture]))
 
 (defmethod test/report :begin-test-run [_])
 
@@ -15,18 +16,31 @@
   (or (-> v meta :eftest/synchronized true?)
       (-> v meta :ns meta :eftest/synchronized true?)))
 
-(defn- test-vars [ns vars opts]
-  (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
-        each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
-        report        (synchronize test/report)
-        test-var      (fn [v] (binding [test/report report] (test/test-var v)))]
+(defn- test-vars [ns vars {:as opts :keys [catch-out?] :or {catch-out? true}}]
+  (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
+        each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
+        capture-context (when catch-out?
+                          (capture/init-capture))
+        report          (synchronize test/report)
+        test-var        (if catch-out?
+                          (fn [v]
+                            (binding [test/report report
+                                      test/*test-out* *out*
+                                      *out* (:captured-writer capture-context)
+                                      *err* (:captured-writer capture-context)]
+                              (test/test-var v)))
+                          (fn [v]
+                            (binding [test/report report]
+                              (test/test-var v))))]
     (once-fixtures
      (fn []
        (if (:multithread? opts true)
          (let [test (bound-fn [v] (each-fixtures #(test-var v)))]
            (dorun (->> vars (filter synchronized?) (map test)))
            (dorun (->> vars (remove synchronized?) (pmap test))))
-         (doseq [v vars] (each-fixtures #(test-var v))))))))
+         (doseq [v vars] (each-fixtures #(test-var v))))))
+    (when catch-out?
+      (capture/restore-capture capture-context))))
 
 (defn- test-ns [ns vars opts]
   (let [ns (the-ns ns)]
@@ -80,7 +94,9 @@
     :multithread? - true if the tests should run in multiple threads
                     (defaults to true)
     :report       - the test reporting function to use
-                    (defaults to eftest.report.progress/report)"
+                    (defaults to eftest.report.progress/report)
+    :catch-out?   - if true, catch test output and print it only if
+                    the test fails (defaults to true)"
   ([vars] (run-tests vars {}))
   ([vars opts]
    (let [start-time (System/nanoTime)]
