@@ -8,10 +8,18 @@
   {:dependencies '[[eftest "0.3.1"]]})
 
 (defn- report-namespace [project]
-  (-> project :eftest (:report 'eftest.report.progress/report) namespace symbol))
+  (if-let [reporter (get-in project [:eftest :report])]
+    (try
+      (-> reporter namespace symbol)
+      (catch NullPointerException cause
+        (throw (ex-info (str "eftest :report must be a fully-qualified reporter "
+                             "function!")
+                        {:reporter reporter}
+                        cause))))
+    'eftest.report.progress))
 
 (defn- require-form [project]
-  `(require 'eftest.runner '~(report-namespace project)))
+  `(require 'eftest.report 'eftest.runner '~(report-namespace project)))
 
 ;; The following three forms are copied from leiningen.test
 
@@ -60,18 +68,30 @@
                           ~selectors)]
       ns#)))
 
+(defn- process-options
+  [{:keys [report report-to-file] :as options}]
+  ;; Use `or` as opposed to relying on the keyword's IFn to ensure we override
+  ;; an explicit/accidental `nil`.
+  ;;
+  ;; Note, that we've duplicated the default reporter decision both here and in
+  ;; `eftest.runner/run-tests`.
+  `(let [reporter# (or ~report eftest.report.progress/report)]
+     (cond-> (or ~options {})
+       (some? ~report-to-file)
+       (update :report eftest.report/report-to-file ~report-to-file))))
+
 (defn- testing-form [project namespaces selectors]
   (let [selectors (vec selectors)
-        ns-sym    (gensym "namespaces")
-        options   (:eftest project {})]
+        ns-sym    (gensym "namespaces")]
     `(let [~ns-sym              ~(form-for-select-namespaces namespaces selectors)
            _#                   (when (seq ~ns-sym) (apply require :reload ~ns-sym))
            selected-namespaces# ~(form-for-nses-selectors-match selectors ns-sym)
+           options#             ~(-> project :eftest process-options)
            summary#             (~form-for-suppressing-unselected-tests
                                  selected-namespaces# ~selectors
                                  #(eftest.runner/run-tests
                                    (eftest.runner/find-tests selected-namespaces#)
-                                   ~options))
+                                   options#))
            exit-code#           (+ (:error summary#) (:fail summary#))]
        (if ~(= :leiningen (:eval-in project))
          exit-code#
