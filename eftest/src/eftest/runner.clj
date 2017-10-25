@@ -16,7 +16,7 @@
   (or (-> v meta :eftest/synchronized true?)
       (-> v meta :ns meta :eftest/synchronized true?)))
 
-(defn- test-vars [ns vars {:as opts :keys [catch-out?] :or {catch-out? true}}]
+(defn- test-vars [ns vars {:as opts :keys [catch-out? fail-fast?] :or {catch-out? true}}]
   (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
         capture-context (when catch-out?
@@ -31,14 +31,19 @@
                               (test/test-var v)))
                           (fn [v]
                             (binding [test/report report]
-                              (test/test-var v))))]
+                              (test/test-var v))))
+        test-var      (fn [v]
+                        (when-not (and fail-fast?
+                                       (or (< 0 (:error @test/*report-counters* 0))
+                                           (< 0 (:fail @test/*report-counters* 0)) ))
+                          (each-fixtures #(test-var v))))]
     (once-fixtures
      (fn []
        (if (:multithread? opts true)
-         (let [test (bound-fn [v] (each-fixtures #(test-var v)))]
+         (let [test (bound-fn [v] (test-var v))]
            (dorun (->> vars (filter synchronized?) (map test)))
            (dorun (->> vars (remove synchronized?) (pmap test))))
-         (doseq [v vars] (each-fixtures #(test-var v))))))
+         (doseq [v vars] (test-var v)))))
     (when catch-out?
       (capture/restore-capture capture-context))))
 
@@ -96,7 +101,8 @@
     :report       - the test reporting function to use
                     (defaults to eftest.report.progress/report)
     :catch-out?   - if true, catch test output and print it only if
-                    the test fails (defaults to true)"
+                    the test fails (defaults to true)
+    :fail-fast?   - stop after first failure or error"
   ([vars] (run-tests vars {}))
   ([vars opts]
    (let [start-time (System/nanoTime)]
