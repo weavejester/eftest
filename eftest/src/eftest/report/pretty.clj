@@ -5,7 +5,8 @@
             [io.aviso.ansi :as ansi]
             [io.aviso.exception :as exception]
             [io.aviso.repl :as repl]
-            [puget.printer :as puget]))
+            [puget.printer :as puget]
+            [eftest.output-capture :as capture]))
 
 (def ^:dynamic *fonts*
   "The ANSI codes to use for reporting on tests."
@@ -74,7 +75,11 @@
     (if (and (sequential? expected)
              (= (first expected) '=))
       (equals-fail-report m)
-      (predicate-fail-report m))))
+      (predicate-fail-report m))
+    (when-let [output (capture/flush-captured-output)]
+      (println "\nTest output: ====================================================")
+      (println output)
+      (println "\n================================================================="))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -88,7 +93,11 @@
    (if (instance? Throwable actual)
      (binding [exception/*traditional* true, exception/*fonts* *fonts*]
        (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
-     (puget/cprint actual))))
+     (puget/cprint actual))
+   (when-let [output (capture/flush-captured-output)]
+     (println "\nTest output: ====================================================")
+     (println output)
+     (println "\n================================================================="))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
