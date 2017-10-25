@@ -7,7 +7,8 @@
             [io.aviso.repl :as repl]
             [puget.printer :as puget]
             [fipp.engine :as fipp]
-            [eftest.output-capture :as capture]))
+            [eftest.output-capture :as capture]
+            [clojure.string :as str]))
 
 (def ^:dynamic *fonts*
   "The ANSI codes to use for reporting on tests."
@@ -80,6 +81,12 @@
                                  (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
                              (puget/format-doc p actual))]])))
 
+(defn- print-output [output]
+  (when-not (str/blank? output)
+    (println "--- Test output ---")
+    (println output)
+    (println "-------------------")))
+
 (defmulti report
   "A reporting function compatible with clojure.test. Uses ANSI colors and
   terminal formatting to produce readable and 'pretty' reports."
@@ -101,23 +108,17 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
-    (when-let [output (capture/flush-captured-output)]
-      (println "\nTest output: ====================================================")
-      (println output)
-      (println "\n================================================================="))))
+    (print-output (capture/flush-captured-output))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
-   (test/inc-report-counter :error)
-   (print *divider*)
-   (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
-   (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
-   (when message (println message))
-   (error-report m)
-   (when-let [output (capture/flush-captured-output)]
-     (println "\nTest output: ====================================================")
-     (println output)
-     (println "\n================================================================="))))
+    (test/inc-report-counter :error)
+    (print *divider*)
+    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
+    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
+    (when message (println message))
+    (error-report m)
+    (print-output (capture/flush-captured-output))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
