@@ -6,6 +6,7 @@
             [io.aviso.exception :as exception]
             [io.aviso.repl :as repl]
             [puget.printer :as puget]
+            [fipp.engine :as fipp]
             [eftest.output-capture :as capture]))
 
 (def ^:dynamic *fonts*
@@ -36,24 +37,48 @@
 (defn- diff-all [expected actuals]
   (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
 
+(defn- pretty-printer []
+  (puget/pretty-printer {:print-color true
+                         :print-meta false}))
+
+(defn- pprint-document [doc]
+  (fipp/pprint-document doc {:width 80}))
+
 (defn- equals-fail-report [{:keys [actual]}]
-  (let [[_ [_ expected & actuals]] actual]
+  (let [[_ [_ expected & actuals]] actual
+        p (pretty-printer)]
     (doseq [[actual [a b]] (diff-all expected actuals)]
-      (println "expected:" (puget/cprint-str expected))
-      (println "  actual:" (puget/cprint-str actual))
-      (when (and (not= expected a) (not= actual b))
-        (print "    diff:")
-        (if a
-          (do (print " - ")
-              (puget/cprint a)
-              (if b (print "          + ")))
-          (print " + "))
-        (if b
-          (puget/cprint b))))))
+      (pprint-document
+        [:group
+         [:span "expected: " (puget/format-doc p expected) :break]
+         [:span "  actual: " (puget/format-doc p actual) :break]
+         (when (and (not= expected a) (not= actual b))
+           [:span "    diff: "
+            (if a
+              [:span "- " (puget/format-doc p a) :break])
+            (if b
+              [:span
+               (if a  "          + " "+ ")
+               (puget/format-doc p b)])])]))))
 
 (defn- predicate-fail-report [{:keys [expected actual]}]
-  (println "expected:" (puget/cprint-str expected))
-  (println "  actual:" (puget/cprint-str actual)))
+  (let [p (pretty-printer)]
+    (pprint-document
+      [:group
+       [:span "expected: " (puget/format-doc p expected) :break]
+       [:span "  actual: " (puget/format-doc p actual)]])))
+
+(defn- error-report [{:keys [expected actual]}]
+  (let [p (pretty-printer)]
+    (pprint-document
+      [:group
+       [:span "expected: " (puget/format-doc p expected) :break]
+       [:span "  actual: " (if (instance? Throwable actual)
+                             (binding [exception/*traditional* true
+                                       exception/*fonts* *fonts*]
+                               (with-out-str
+                                 (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
+                             (puget/format-doc p actual))]])))
 
 (defmulti report
   "A reporting function compatible with clojure.test. Uses ANSI colors and
@@ -88,12 +113,7 @@
    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
    (when message (println message))
-   (println "expected:" (puget/cprint-str expected))
-   (print "  actual: ")
-   (if (instance? Throwable actual)
-     (binding [exception/*traditional* true, exception/*fonts* *fonts*]
-       (repl/pretty-print-stack-trace actual test/*stack-trace-depth*))
-     (puget/cprint actual))
+   (error-report m)
    (when-let [output (capture/flush-captured-output)]
      (println "\nTest output: ====================================================")
      (println output)
