@@ -25,7 +25,6 @@
         test-var        (if catch-out?
                           (fn [v]
                             (binding [test/report report
-                                      test/*test-out* *out*
                                       *out* (:captured-writer capture-context)
                                       *err* (:captured-writer capture-context)]
                               (test/test-var v)))
