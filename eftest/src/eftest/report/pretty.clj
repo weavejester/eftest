@@ -23,7 +23,8 @@
    :omitted-frame  ansi/reset-font
    :pass           ansi/green-font
    :fail           ansi/red-font
-   :error          ansi/red-font})
+   :error          ansi/red-font
+   :divider        ansi/yellow-font})
 
 (def ^:dynamic *divider*
   "The divider to use between test failure and error reports."
@@ -82,10 +83,12 @@
                              (puget/format-doc p actual))]])))
 
 (defn- print-output [output]
-  (when-not (str/blank? output)
-    (println "--- Test output ---")
-    (println output)
-    (println "-------------------")))
+  (let [c (:divider *fonts*)
+        r (:reset *fonts*)]
+    (when-not (str/blank? output)
+      (println (str c "---" r " Test output " c "---" r))
+      (println output)
+      (println (str c "-------------------" r)))))
 
 (defmulti report
   "A reporting function compatible with clojure.test. Uses ANSI colors and
@@ -108,7 +111,7 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
-    (print-output (capture/flush-captured-output))))
+    (print-output (capture/read-local-output))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -118,7 +121,7 @@
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (error-report m)
-    (print-output (capture/flush-captured-output))))
+    (print-output (capture/read-local-output))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
