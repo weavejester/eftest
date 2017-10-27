@@ -20,14 +20,15 @@
   (or (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
 
-(defn- test-vars [ns vars {:as opts :keys [fail-fast? catch-out?] :or {catch-out? true}}]
+(defn- test-vars
+  [ns vars {:as opts :keys [fail-fast? capture-output?] :or {capture-output? true}}]
   (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
         report          (synchronize test/report)
         test-var        (fn [v]
                           (when-not (and fail-fast? (failed-test?))
                             (each-fixtures
-                             (if catch-out?
+                             (if capture-output?
                                #(binding [test/report report]
                                   (capture/with-test-buffer
                                     (test/test-var v)))
@@ -40,11 +41,11 @@
           (dorun (->> vars (remove synchronized?) (pmap test))))
         (doseq [v vars] (test-var v))))))
 
-(defn- test-ns [ns vars {:as opts :keys [catch-out?] :or {catch-out? true}}]
+(defn- test-ns [ns vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
   (let [ns (the-ns ns)]
     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
       (test/do-report {:type :begin-test-ns, :ns ns})
-      (if catch-out?
+      (if capture-output?
         (capture/with-capture (test-vars ns vars opts))
         (test-vars ns vars opts))
       (test/do-report {:type :end-test-ns, :ns ns})
@@ -91,13 +92,13 @@
 (defn run-tests
   "Run the supplied test vars. Accepts the following options:
 
-    :multithread? - true if the tests should run in multiple threads
-                    (defaults to true)
-    :report       - the test reporting function to use
-                    (defaults to eftest.report.progress/report)
-    :catch-out?   - if true, catch test output and print it only if
-                    the test fails (defaults to true)
-    :fail-fast?   - stop after first failure or error"
+    :multithread?    - true if the tests should run in multiple threads
+                       (defaults to true)
+    :report          - the test reporting function to use
+                       (defaults to eftest.report.progress/report)
+    :capture-output? - if true, catch test output and print it only if
+                       the test fails (defaults to true)
+    :fail-fast?      - stop after first failure or error"
   ([vars] (run-tests vars {}))
   ([vars opts]
    (let [start-time (System/nanoTime)]
