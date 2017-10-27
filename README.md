@@ -51,6 +51,8 @@ user=> (run-tests (find-tests "test"))
 
 The above example will run all tests found in the "test" directory.
 
+#### Multithreading
+
 By default Eftest runs tests in parallel, which can cause issues with
 tests that expect to be single-threaded. To disable this, set the
 `:multithread?` option to `false`:
@@ -74,6 +76,8 @@ Or you can synchronize the entire namespace:
   (:require [clojure.test :refer :all]
             [foo.core :refer :all]))
 ```
+
+#### Reporting
 
 You can also change the reporting function used. For example, if you
 want a colorized reporter but without the progress bar:

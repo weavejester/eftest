@@ -33,41 +33,30 @@
 
 (def var-threadpool (delay (make-threadpool)))
 
-(defn- test-vars [ns vars {:as opts :keys [catch-out? fail-fast?] :or {catch-out? true}}]
+(defn- test-vars [ns vars {:as opts :keys [fail-fast?]}]
   (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
-        capture-context (when catch-out?
-                          (capture/init-capture))
         report          (synchronize test/report)
-        test-var        (if catch-out?
-                          (fn [v]
-                            (binding [test/report report
-                                      *out* (:captured-writer capture-context)
-                                      *err* (:captured-writer capture-context)]
-                              (test/test-var v)))
-                          (fn [v]
-                            (binding [test/report report]
-                              (test/test-var v))))
-        test-var      (fn [v]
-                        (when-not (and fail-fast?
-                                       (or (< 0 (:error @test/*report-counters* 0))
-                                           (< 0 (:fail @test/*report-counters* 0)) ))
-                          (each-fixtures #(test-var v))))]
+        test-var        (fn [v]
+                          (when-not (and fail-fast? (failed-test?))
+                            (each-fixtures
+                             #(binding [test/report report]
+                                (capture/clear-local-buffer)
+                                (test/test-var v)))))]
     (once-fixtures
-     (fn []
-       (if (:multithread? opts true)
-         (let [test (bound-fn [v] (test-var v))]
-           (dorun (->> vars (filter synchronized?) (map test)))
-           (dorun (->> vars (remove synchronized?) (tp-pmap @var-threadpool test))))
-         (doseq [v vars] (test-var v)))))
-    (when catch-out?
-      (capture/restore-capture capture-context))))
+     #(if (:multithread? opts true)
+        (let [test (bound-fn* test-var)]
+          (dorun (->> vars (filter synchronized?) (map test)))
+          (dorun (->> vars (remove synchronized?) (tp-pmap @var-threadpool test))))
+        (doseq [v vars] (test-var v))))))
 
-(defn- test-ns [ns vars opts]
+(defn- test-ns [ns vars {:as opts :keys [catch-out?] :or {catch-out? true}}]
   (let [ns (the-ns ns)]
     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
       (test/do-report {:type :begin-test-ns, :ns ns})
-      (test-vars ns vars opts)
+      (if catch-out?
+        (capture/with-capture (test-vars ns vars opts))
+        (test-vars ns vars opts))
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 

@@ -23,7 +23,8 @@
    :omitted-frame  ansi/reset-font
    :pass           ansi/green-font
    :fail           ansi/red-font
-   :error          ansi/red-font})
+   :error          ansi/red-font
+   :divider        ansi/yellow-font})
 
 (def ^:dynamic *divider*
   "The divider to use between test failure and error reports."
@@ -74,18 +75,21 @@
     (pprint-document
       [:group
        [:span "expected: " (puget/format-doc p expected) :break]
-       [:span "  actual: " (if (instance? Throwable actual)
-                             (binding [exception/*traditional* true
-                                       exception/*fonts* *fonts*]
-                               (with-out-str
-                                 (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
-                             (puget/format-doc p actual))]])))
+       [:span "  actual: "
+        (if (instance? Throwable actual)
+          (binding [exception/*traditional* true
+                    exception/*fonts* *fonts*]
+            (with-out-str
+              (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
+          (puget/format-doc p actual))]])))
 
 (defn- print-output [output]
-  (when-not (str/blank? output)
-    (println "--- Test output ---")
-    (println output)
-    (println "-------------------")))
+  (let [c (:divider *fonts*)
+        r (:reset *fonts*)]
+    (when-not (str/blank? output)
+      (println (str c "---" r " Test output " c "---" r))
+      (println (str/trim-newline output))
+      (println (str c "-------------------" r)))))
 
 (defmulti report
   "A reporting function compatible with clojure.test. Uses ANSI colors and
@@ -108,7 +112,7 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
-    (print-output (capture/flush-captured-output))))
+    (print-output (capture/read-local-buffer))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -118,7 +122,7 @@
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (error-report m)
-    (print-output (capture/flush-captured-output))))
+    (print-output (capture/read-local-buffer))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
