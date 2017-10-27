@@ -22,18 +22,18 @@
 
 (defn- test-vars
   [ns vars {:as opts :keys [fail-fast? capture-output?] :or {capture-output? true}}]
-  (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
-        each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
-        report          (synchronize test/report)
-        test-var        (fn [v]
-                          (when-not (and fail-fast? (failed-test?))
-                            (each-fixtures
-                             (if capture-output?
-                               #(binding [test/report report]
-                                  (capture/with-test-buffer
-                                    (test/test-var v)))
-                               #(binding [test/report report]
-                                  (test/test-var v))))))]
+  (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
+        each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
+        report        (synchronize test/report)
+        test-var      (fn [v]
+                        (when-not (and fail-fast? (failed-test?))
+                          (each-fixtures
+                           (if capture-output?
+                             #(binding [test/report report]
+                                (capture/with-test-buffer
+                                  (test/test-var v)))
+                             #(binding [test/report report]
+                                (test/test-var v))))))]
     (once-fixtures
      #(if (:multithread? opts true)
         (let [test (bound-fn* test-var)]
