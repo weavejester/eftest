@@ -75,7 +75,7 @@
 
 (defn- test-all [vars opts]
   (->> (group-by (comp :ns meta) vars)
-       ((if (:multithread? opts true) (partial tp-pmap @ns-threadpool) map)
+       ((if (:multithread-ns? opts true) (partial tp-pmap @ns-threadpool) map)
          (fn [[ns vars]] (test-ns ns vars opts)))
        (apply merge-with +)))
 
@@ -115,13 +115,15 @@
 (defn run-tests
   "Run the supplied test vars. Accepts the following options:
 
-    :multithread? - true if the tests should run in multiple threads
-                    (defaults to true)
-    :report       - the test reporting function to use
-                    (defaults to eftest.report.progress/report)
-    :catch-out?   - if true, catch test output and print it only if
-                    the test fails (defaults to true)
-    :fail-fast?   - stop after first failure or error"
+    :multithread?    - true if the tests should run in multiple threads
+                       (defaults to true)
+    :multithread-ns? - whether to run tests in different namespace in multiple
+                       threads (defaults to true)
+    :report          - the test reporting function to use
+                       (defaults to eftest.report.progress/report)
+    :catch-out?      - if true, catch test output and print it only if
+                       the test fails (defaults to true)
+    :fail-fast?      - stop after first failure or error"
   ([vars] (run-tests vars {}))
   ([vars opts]
    (let [start-time (System/nanoTime)]
