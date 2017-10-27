@@ -28,7 +28,7 @@
                           (when-not (and fail-fast? (failed-test?))
                             (each-fixtures
                              #(binding [test/report report]
-                                (capture/clear-local-output)
+                                (capture/clear-local-buffer)
                                 (test/test-var v)))))]
     (once-fixtures
      #(if (:multithread? opts true)
@@ -109,5 +109,4 @@
                duration (/ (- (System/nanoTime) start-time) 1e6)
                summary  (assoc counters :type :summary, :duration duration)]
            (test/do-report summary)
-           (capture/flush-captured-output)
            summary))))))

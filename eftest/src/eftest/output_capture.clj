@@ -2,29 +2,30 @@
   (:require [clojure.string :as str])
   (:import [java.io OutputStream ByteArrayOutputStream PrintStream PrintWriter]))
 
-(def context (atom {}))
+(def local-buffer (ThreadLocal.))
 
-(defn- init-buffer [buffer]
-  (or buffer (ByteArrayOutputStream.)))
+(defn get-local-buffer ^ByteArrayOutputStream []
+  (or (.get local-buffer)
+      (.get (doto local-buffer (.set (ByteArrayOutputStream.))))))
 
-(defn- get-local-buffer ^ByteArrayOutputStream []
-  (let [id (.getId (Thread/currentThread))]
-    (-> (swap! context update id init-buffer) (get id))))
+(defn clear-local-buffer []
+  (.reset (get-local-buffer)))
+
+(defn read-local-buffer []
+  (String. (.toByteArray (get-local-buffer))))
 
 (defn- create-proxy-output-stream ^OutputStream []
   (proxy [OutputStream] []
     (write
       ([data]
-       (when-let [target (get-local-buffer)]
+       (let [target (get-local-buffer)]
          (if (instance? Integer data)
            (.write target ^int data)
            (.write target ^bytes data 0 (alength ^bytes data)))))
       ([data off len]
-       (when-let [target (get-local-buffer)]
-         (.write target data off len))))))
+       (.write (get-local-buffer) data off len)))))
 
 (defn init-capture []
-  (reset! context {})
   (let [old-out             System/out
         old-err             System/err
         proxy-output-stream (create-proxy-output-stream)
@@ -48,9 +49,3 @@
          ~@body)
        (finally
          (restore-capture context#)))))
-
-(defn clear-local-output []
-  (.reset (get-local-buffer)))
-
-(defn read-local-output []
-  (some-> (get-local-buffer) .toByteArray String. str/trim))

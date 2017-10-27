@@ -87,7 +87,7 @@
         r (:reset *fonts*)]
     (when-not (str/blank? output)
       (println (str c "---" r " Test output " c "---" r))
-      (println output)
+      (println (str/trim-newline output))
       (println (str c "-------------------" r)))))
 
 (defmulti report
@@ -111,7 +111,7 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
-    (print-output (capture/read-local-output))))
+    (print-output (capture/read-local-buffer))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -121,7 +121,7 @@
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (error-report m)
-    (print-output (capture/read-local-output))))
+    (print-output (capture/read-local-buffer))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
