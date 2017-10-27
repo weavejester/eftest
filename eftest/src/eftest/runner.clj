@@ -31,6 +31,10 @@
   (or (-> v meta :eftest/synchronized true?)
       (-> v meta :ns meta :eftest/synchronized true?)))
 
+(defn- failed-test? []
+  (or (< 0 (:error @test/*report-counters* 0))		
+      (< 0 (:fail @test/*report-counters* 0))))
+
 (def var-threadpool (delay (make-threadpool)))
 
 (defn- test-vars [ns vars {:as opts :keys [fail-fast?]}]
