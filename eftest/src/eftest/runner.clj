@@ -6,7 +6,6 @@
             [eftest.report :as report]
             [eftest.report.progress :as progress]
             [eftest.output-capture :as capture])
-            [eftest.report.progress :as progress])
   (:import [java.util.concurrent Executors ExecutorService]))
 
 (defmethod test/report :begin-test-run [_])
