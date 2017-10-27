@@ -123,7 +123,7 @@ To turn off this behavior, set the `:capture-output?` option to
 user=> (run-tests (find-tests "test") {:capture-output? false})
 ```
 
-#### Fail fast
+#### Fast failure
 
 Sometimes it's useful to end the testing on the first test failure. To
 do this set the `:fail-fast?` option to `true`:
