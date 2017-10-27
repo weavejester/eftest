@@ -20,16 +20,19 @@
   (or (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
 
-(defn- test-vars [ns vars {:as opts :keys [fail-fast?]}]
+(defn- test-vars [ns vars {:as opts :keys [fail-fast? catch-out?] :or {catch-out? true}}]
   (let [once-fixtures   (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures   (-> ns meta ::test/each-fixtures test/join-fixtures)
         report          (synchronize test/report)
         test-var        (fn [v]
                           (when-not (and fail-fast? (failed-test?))
                             (each-fixtures
-                             #(binding [test/report report]
-                                (capture/clear-local-buffer)
-                                (test/test-var v)))))]
+                             (if catch-out?
+                               #(binding [test/report report]
+                                  (capture/with-test-buffer
+                                    (test/test-var v)))
+                               #(binding [test/report report]
+                                  (test/test-var v))))))]
     (once-fixtures
      #(if (:multithread? opts true)
         (let [test (bound-fn* test-var)]

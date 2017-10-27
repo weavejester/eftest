@@ -112,7 +112,7 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
-    (print-output (capture/read-local-buffer))))
+    (print-output (capture/read-test-buffer))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
   (test/with-test-out
@@ -122,7 +122,7 @@
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (error-report m)
-    (print-output (capture/read-local-buffer))))
+    (print-output (capture/read-test-buffer))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
