@@ -75,12 +75,13 @@
     (pprint-document
       [:group
        [:span "expected: " (puget/format-doc p expected) :break]
-       [:span "  actual: " (if (instance? Throwable actual)
-                             (binding [exception/*traditional* true
-                                       exception/*fonts* *fonts*]
-                               (with-out-str
-                                 (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
-                             (puget/format-doc p actual))]])))
+       [:span "  actual: "
+        (if (instance? Throwable actual)
+          (binding [exception/*traditional* true
+                    exception/*fonts* *fonts*]
+            (with-out-str
+              (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
+          (puget/format-doc p actual))]])))
 
 (defn- print-output [output]
   (let [c (:divider *fonts*)
