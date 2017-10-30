@@ -2,28 +2,35 @@
   (:require [clojure.string :as str])
   (:import [java.io OutputStream ByteArrayOutputStream PrintStream PrintWriter]))
 
-(def local-buffer (ThreadLocal.))
+(def ^:dynamic *test-buffer* nil)
 
-(defn get-local-buffer ^ByteArrayOutputStream []
-  (or (.get local-buffer)
-      (.get (doto local-buffer (.set (ByteArrayOutputStream.))))))
+(defn read-test-buffer []
+  (String. (.toByteArray *test-buffer*)))
 
-(defn clear-local-buffer []
-  (.reset (get-local-buffer)))
+(def active-buffers (atom #{}))
 
-(defn read-local-buffer []
-  (String. (.toByteArray (get-local-buffer))))
+(defmacro with-test-buffer [& body]
+  `(let [buffer# (ByteArrayOutputStream.)]
+     (try
+       (swap! active-buffers conj buffer#)
+       (binding [*test-buffer* buffer#] ~@body)
+       (finally (swap! active-buffers disj buffer#)))))
+
+(defn- doto-capture-buffer [f]
+  (if *test-buffer*
+    (f *test-buffer*)
+    (doseq [buffer @active-buffers]
+      (f buffer))))
 
 (defn- create-proxy-output-stream ^OutputStream []
   (proxy [OutputStream] []
     (write
       ([data]
-       (let [target (get-local-buffer)]
-         (if (instance? Integer data)
-           (.write target ^int data)
-           (.write target ^bytes data 0 (alength ^bytes data)))))
+       (if (instance? Integer data)
+         (doto-capture-buffer #(.write % ^int data))
+         (doto-capture-buffer #(.write % ^bytes data 0 (alength ^bytes data)))))
       ([data off len]
-       (.write (get-local-buffer) data off len)))))
+       (doto-capture-buffer #(.write % data off len))))))
 
 (defn init-capture []
   (let [old-out             System/out
@@ -46,6 +53,7 @@
          writer#  (:captured-writer context#)]
      (try
        (binding [*out* writer#, *err* writer#]
-         ~@body)
+         (with-redefs [*out* writer#, *err* writer#]
+           ~@body))
        (finally
          (restore-capture context#)))))
