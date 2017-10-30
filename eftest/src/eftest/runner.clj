@@ -5,9 +5,23 @@
             [clojure.tools.namespace.find :as find]
             [eftest.report :as report]
             [eftest.report.progress :as progress]
-            [eftest.output-capture :as capture]))
+            [eftest.output-capture :as capture])
+  (:import [java.util.concurrent Executors ExecutorService]))
 
 (defmethod test/report :begin-test-run [_])
+
+(defn make-threadpool
+  ([] (make-threadpool (.availableProcessors (Runtime/getRuntime))))
+  ([n]
+   (Executors/newFixedThreadPool n)))
+
+(defn tp-pmap
+  [^ExecutorService executor f coll]
+  (map deref
+       (doall
+         (for [e coll
+               :let [^Callable cb (cast Callable (bound-fn [] (f e)))]]
+           (.submit executor cb)))))
 
 (defn- synchronize [f]
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
@@ -19,6 +33,8 @@
 (defn- failed-test? []
   (or (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
+
+(def var-threadpool (delay (make-threadpool)))
 
 (defn- test-vars
   [ns vars {:as opts :keys [fail-fast? capture-output?] :or {capture-output? true}}]
@@ -38,7 +54,7 @@
      #(if (:multithread? opts true)
         (let [test (bound-fn* test-var)]
           (dorun (->> vars (filter synchronized?) (map test)))
-          (dorun (->> vars (remove synchronized?) (pmap test))))
+          (dorun (->> vars (remove synchronized?) (tp-pmap @var-threadpool test))))
         (doseq [v vars] (test-var v))))))
 
 (defn- test-ns [ns vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
@@ -51,9 +67,12 @@
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 
+(def ns-threadpool (delay (make-threadpool)))
+
 (defn- test-all [vars opts]
   (->> (group-by (comp :ns meta) vars)
-       (map (fn [[ns vars]] (test-ns ns vars opts)))
+       ((if (:multithread-ns? opts true) (partial tp-pmap @ns-threadpool) map)
+         (fn [[ns vars]] (test-ns ns vars opts)))
        (apply merge-with +)))
 
 (defn- require-namespaces-in-dir [dir]
@@ -94,6 +113,8 @@
 
     :multithread?    - true if the tests should run in multiple threads
                        (defaults to true)
+    :multithread-ns? - whether to run tests in different namespace in multiple
+                       threads (defaults to true)
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
     :capture-output? - if true, catch test output and print it only if
