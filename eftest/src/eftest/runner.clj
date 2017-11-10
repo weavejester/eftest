@@ -16,12 +16,32 @@
   (or (-> v meta :eftest/synchronized true?)
       (-> v meta :ns meta :eftest/synchronized true?)))
 
+(defn- known-slow? [v]
+  (or (-> v meta :eftest/slow true?)
+      (-> v meta :ns meta :eftest/slow true?)))
+
 (defn- failed-test? []
   (or (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
 
+(defn- wrap-test-with-timer [test-fn test-warn-time]
+  (fn [v]
+    (let [start-time (System/nanoTime)
+          result     (test-fn v)
+          end-time   (System/nanoTime)
+          duration   (/ (- end-time start-time) 1e6)]
+      (when (and (not (known-slow? v))
+                 (number? test-warn-time)
+                 (<= test-warn-time duration))
+        (binding [clojure.test/*testing-vars* (conj clojure.test/*testing-vars* v)]
+          (test/report {:type     :long-test
+                        :duration duration
+                        :var      v})))
+      result)))
+
 (defn- test-vars
-  [ns vars {:as opts :keys [fail-fast? capture-output?] :or {capture-output? true}}]
+  [ns vars {:as opts :keys [fail-fast? capture-output? test-warn-time]
+            :or {capture-output? true}}]
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
         report        (synchronize test/report)
@@ -36,7 +56,7 @@
                                 (test/test-var v))))))]
     (once-fixtures
      #(if (:multithread? opts true)
-        (let [test (bound-fn* test-var)]
+        (let [test (bound-fn* (wrap-test-with-timer test-var test-warn-time))]
           (dorun (->> vars (filter synchronized?) (map test)))
           (dorun (->> vars (remove synchronized?) (pmap test))))
         (doseq [v vars] (test-var v))))))
@@ -98,7 +118,9 @@
                        (defaults to eftest.report.progress/report)
     :capture-output? - if true, catch test output and print it only if
                        the test fails (defaults to true)
-    :fail-fast?      - stop after first failure or error"
+    :fail-fast?      - stop after first failure or error
+    :test-warn-time  - print a warning for any test that exceeds this time
+                       (measured in milliseconds)"
   ([vars] (run-tests vars {}))
   ([vars opts]
    (let [start-time (System/nanoTime)]

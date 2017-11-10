@@ -63,3 +63,10 @@
   (test/with-test-out
     (print-progress (swap! report/*context* update-in [:bar] prog/done))
     (pretty/report m)))
+
+(defmethod report :long-test [m]
+  (test/with-test-out
+    (print clear-line)
+    (binding [pretty/*divider* "\r"] (pretty/report m))
+    (newline)
+    (print-progress @report/*context*)))
