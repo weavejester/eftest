@@ -132,6 +132,26 @@ do this set the `:fail-fast?` option to `true`:
 user=> (run-tests (find-tests "test") {:fail-fast? true})
 ```
 
+#### Long test reporting
+
+If you wish to monitor the length of time to run each test, you can
+set the `:test-warn-time` option to the threshold in milliseconds you
+wish to warn on long test for. The measured duration includes the
+running of `:each-fixtures`, but not `:once-fixtures`.
+
+If you know a particular test to be slow and are ok with that, and
+don't want to continually be warned about it, you can add the metadata
+`:eftest/slow` to either the individual test, or the entire namespace,
+to prevent reporting.
+
+Note that currently only the `pretty` and `progress` reporters support
+logging long tests.
+
+```clojure
+;; Warns for all tests that take longer than 500ms
+user=> (run-tests (find-tests "test") {:test-warn-time 500})
+```
+
 ### Plugin
 
 To use the Lein-Eftest plugin, just run:

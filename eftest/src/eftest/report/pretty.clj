@@ -34,7 +34,8 @@
   (let [test-var (first test/*testing-vars*)]
     (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
          (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
-         " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))
+         (when (or file line)
+           " (" (:source *fonts*) file ":" line (:reset *fonts*) ")"))))
 
 (defn- diff-all [expected actuals]
   (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
@@ -129,6 +130,12 @@
 
 (defn- format-interval [duration]
   (format "%.3f seconds" (double (/ duration 1e3))))
+
+(defmethod report :long-test [{:keys [duration] :as m}]
+  (test/with-test-out
+    (print *divider*)
+    (println (str (:fail *fonts*) "LONG TEST" (:reset *fonts*) " in") (testing-vars-str m))
+    (when duration (println "Test took" (format-interval duration) "seconds to run"))))
 
 (defmethod report :summary [{:keys [test pass fail error duration]}]
   (let [total (+ pass fail error)
