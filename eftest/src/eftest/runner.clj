@@ -39,6 +39,18 @@
                         :var      v})))
       result)))
 
+(defn- run-in-parallel [fs]
+  (let [executor (java.util.concurrent.Executors/newFixedThreadPool
+                   (+ 2 (.availableProcessors (Runtime/getRuntime))))]
+    (try
+      (->> fs
+           (map #(.submit executor ^Runnable %))
+           doall
+           (map #(.get %))
+           dorun)
+      (finally
+        (.shutdownNow executor)))))
+
 (defn- test-vars
   [ns vars {:as opts :keys [fail-fast? capture-output? test-warn-time]
             :or {capture-output? true}}]
@@ -55,11 +67,12 @@
                              #(binding [test/report report]
                                 (test/test-var v))))))]
     (once-fixtures
-     #(if (:multithread? opts true)
-        (let [test (bound-fn* (wrap-test-with-timer test-var test-warn-time))]
-          (dorun (->> vars (filter synchronized?) (map test)))
-          (dorun (->> vars (remove synchronized?) (pmap test))))
-        (doseq [v vars] (test-var v))))))
+      (fn []
+        (if (:multithread? opts true)
+          (let [test (bound-fn* (wrap-test-with-timer test-var test-warn-time))]
+            (dorun (->> vars (filter synchronized?) (map test)))
+            (dorun (->> vars (remove synchronized?) (map (fn [v] #(test v))) run-in-parallel)))
+          (doseq [v vars] (test-var v)))))))
 
 (defn- test-ns [ns vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
   (let [ns (the-ns ns)]
