@@ -15,6 +15,7 @@
   (let [output-key [::output-files output-file]]
     (fn [m]
       (when (= (:type m) :begin-test-run)
+        (io/make-parents (io/file output-file))
         (swap! *context* assoc-in output-key (io/writer output-file)))
       (let [writer (get-in @*context* output-key)]
         (binding [*test-out* writer]
