@@ -29,7 +29,7 @@
 (defn test-name [vars]
   (apply str (interpose "." (reverse (map #(:name (meta %)) vars)))))
 
-(defn package-class [name]
+(defn package-class [^String name]
   (let [i (.lastIndexOf name ".")]
     (if (< i 0)
       [nil name]
@@ -127,3 +127,8 @@
 (defmethod report :error [m]
   (test/inc-report-counter :error)
   (push-result m))
+
+;; Ignore reports from test.check.
+(defmethod report :clojure.test.check.clojure-test/trial [m])
+(defmethod report :clojure.test.check.clojure-test/shrinking [m])
+(defmethod report :clojure.test.check.clojure-test/shrunk [m])

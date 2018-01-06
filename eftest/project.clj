@@ -7,4 +7,5 @@
                  [org.clojure/tools.namespace "0.2.11"]
                  [progrock "0.1.2"]
                  [io.aviso/pretty "0.1.33"]
-                 [mvxcvi/puget "1.0.1"]])
+                 [mvxcvi/puget "1.0.1"]]
+  :profiles {:dev {:dependencies [[org.clojure/data.xml "0.2.0-alpha2"]]}})
