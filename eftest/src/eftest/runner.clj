@@ -57,19 +57,20 @@
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
         report        (synchronize test/report)
-        test-var      (fn [v]
-                        (when-not (and fail-fast? (failed-test?))
-                          (each-fixtures
-                           (if capture-output?
-                             #(binding [test/report report]
-                                (capture/with-test-buffer
-                                  (test/test-var v)))
-                             #(binding [test/report report]
-                                (test/test-var v))))))]
+        test-var      (-> (fn [v]
+                            (when-not (and fail-fast? (failed-test?))
+                              (each-fixtures
+                               (if capture-output?
+                                 #(binding [test/report report]
+                                    (capture/with-test-buffer
+                                      (test/test-var v)))
+                                 #(binding [test/report report]
+                                    (test/test-var v))))))
+                          (wrap-test-with-timer test-warn-time))]
     (once-fixtures
       (fn []
         (if (:multithread? opts true)
-          (let [test (bound-fn* (wrap-test-with-timer test-var test-warn-time))]
+          (let [test (bound-fn* test-var)]
             (dorun (->> vars (filter synchronized?) (map test)))
             (dorun (->> vars (remove synchronized?) (map (fn [v] #(test v))) run-in-parallel)))
           (doseq [v vars] (test-var v)))))))
