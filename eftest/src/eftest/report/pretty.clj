@@ -35,7 +35,7 @@
     (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
          (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
          (when (or file line)
-           " (" (:source *fonts*) file ":" line (:reset *fonts*) ")"))))
+           (str " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))))
 
 (defn- diff-all [expected actuals]
   (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
