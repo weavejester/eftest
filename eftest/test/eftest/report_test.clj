@@ -48,3 +48,21 @@
                 pretty-nil
                 "\n")
            result))))
+
+(deftest report-outside-testing-vars
+  (let [pretty-nil (puget/pprint-str nil {:print-color true
+                                          :print-meta false})]
+    (is (= (str "\nFAIL in unknown-namespace/unknown-test (report_test.clj:10)\nfoo\nexpected: "
+                pretty-nil
+                "\n  actual: "
+                pretty-nil
+                "\n")
+           (with-out-str
+             (binding [*testing-vars* []
+                       pretty/*fonts* {}
+                       *report-counters* (ref *initial-report-counters*)
+                       *test-out* *out*]
+               (pretty/report {:type :fail
+                               :message "foo"
+                               :file "report_test.clj"
+                               :line 10})))))))
