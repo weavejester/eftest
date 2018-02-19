@@ -21,7 +21,8 @@
       (-> v meta :ns meta :eftest/slow true?)))
 
 (defn- failed-test? []
-  (or (< 0 (:error @test/*report-counters* 0))
+  (or (not= :pass (get @report/*context* :state :pass))
+      (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
 
 (defn- wrap-test-with-timer [test-fn test-warn-time]
