@@ -79,7 +79,7 @@
     (once-fixtures
       (fn []
         (if (:multithread? opts true)
-          (do (->> vars (filter synchronized?) (map test-var) (dorun))
+          (do (->> vars (filter synchronized?) (map test-var)   (dorun))
               (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
           (doseq [v vars] (test-var v)))))))
 
@@ -92,16 +92,13 @@
       @test/*report-counters*)))
 
 (defn- test-all [vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
-  (let [mapf     (if (:multithread-ns? opts true)
-                   pmap*
-                   map)
-        test-nss (fn []
-                   (->> (group-by (comp :ns meta) vars)
-                        (mapf (fn [[ns vars]] (test-ns ns vars opts)))
-                        (apply merge-with +)))]
+  (let [mapf (if (:multithread-ns? opts true) pmap* map)
+        f    #(->> (group-by (comp :ns meta) vars)
+                   (mapf (fn [[ns vars]] (test-ns ns vars opts)))
+                   (apply merge-with +))]
     (if capture-output?
-      (capture/with-capture (test-nss))
-      (test-nss))))
+      (capture/with-capture (f))
+      (f))))
 
 (defn- require-namespaces-in-dir [dir]
   (map (fn [ns] (require ns) (find-ns ns)) (find/find-namespaces-in-dir dir)))
@@ -141,8 +138,8 @@
 
     :multithread?    - true if the tests should run in multiple threads
                        (defaults to true)
-    :multithread-ns? - true if the tests in different namespaces should run in multiple threads
-                       (defaults to true)
+    :multithread-ns? - true if the tests in different namespaces should run in
+                       multiple threads (defaults to true)
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
     :capture-output? - if true, catch test output and print it only if
@@ -154,9 +151,8 @@
   ([vars opts]
    (let [start-time (System/nanoTime)]
      (if (empty? vars)
-       (do
-         (println "No tests found.")
-         test/*initial-report-counters*)
+       (do (println "No tests found.")
+           test/*initial-report-counters*)
        (binding [report/*context* (atom {})
                  test/report      (:report opts progress/report)]
          (test/do-report {:type :begin-test-run, :count (count vars)})
