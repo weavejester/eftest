@@ -136,15 +136,15 @@
 (defn run-tests
   "Run the supplied test vars. Accepts the following options:
 
-    :multithread?    - true if the tests should run in multiple threads
-                       (defaults to true)
-    :multithread-ns? - true if the tests in different namespaces should run in
-                       multiple threads (defaults to true)
-    :report          - the test reporting function to use
-                       (defaults to eftest.report.progress/report)
+    :fail-fast?      - if true, stop after first failure or error
     :capture-output? - if true, catch test output and print it only if
                        the test fails (defaults to true)
-    :fail-fast?      - stop after first failure or error
+    :multithread?    - if true, run tests in the same namespace in parallel
+                       (defaults to true)
+    :multithread-ns? - if true, run test namespaces in parallel
+                       (defaults to true)
+    :report          - the test reporting function to use
+                       (defaults to eftest.report.progress/report)
     :test-warn-time  - print a warning for any test that exceeds this time
                        (measured in milliseconds)"
   ([vars] (run-tests vars {}))
