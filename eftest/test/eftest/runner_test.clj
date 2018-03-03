@@ -43,5 +43,6 @@
                (sut/run-tests (concat (sut/find-tests 'eftest.test-ns.single-failing-test)
                                       (sut/find-tests 'eftest.test-ns.another-failing-test))
                               {:fail-fast? true
-                               :multithread? false}))
+                               :multithread? false
+                               :multithread-ns? false}))
              (select-keys [:test :fail])))))
