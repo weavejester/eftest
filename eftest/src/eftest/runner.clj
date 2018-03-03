@@ -61,6 +61,12 @@
 (defn- pmap* [f xs]
   (pcalls* (map (fn [x] #(f x)) xs)))
 
+(defn- multithread-vars? [{:keys [multithread?] :or {multithread? true}}]
+  (or (true? multithread?) (= multithread? :vars)))
+
+(defn- multithread-namespaces? [{:keys [multithread?] :or {multithread? true}}]
+  (or (true? multithread?) (= multithread? :namespaces)))
+
 (defn- test-vars
   [ns vars {:as opts :keys [fail-fast? capture-output? test-warn-time]
             :or {capture-output? true}}]
@@ -79,7 +85,7 @@
                           (wrap-test-with-timer test-warn-time))]
     (once-fixtures
       (fn []
-        (if (:multithread? opts true)
+        (if (multithread-vars? opts)
           (do (->> vars (filter synchronized?) (map test-var)   (dorun))
               (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
           (doseq [v vars] (test-var v)))))))
@@ -93,7 +99,7 @@
       @test/*report-counters*)))
 
 (defn- test-all [vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
-  (let [mapf (if (:multithread-ns? opts true) pmap* map)
+  (let [mapf (if (multithread-namespaces? opts) pmap* map)
         f    #(->> (group-by (comp :ns meta) vars)
                    (mapf (fn [[ns vars]] (test-ns ns vars opts)))
                    (apply merge-with +))]
@@ -140,10 +146,13 @@
     :fail-fast?      - if true, stop after first failure or error
     :capture-output? - if true, catch test output and print it only if
                        the test fails (defaults to true)
-    :multithread?    - if true, run tests in the same namespace in parallel
-                       (defaults to true)
-    :multithread-ns? - if true, run test namespaces in parallel
-                       (defaults to true)
+    :multithread?    - one of: true, false, :namespaces or :vars (defaults to
+                       true). If set to true, namespaces and vars are run in
+                       parallel; if false, they are run in serial. If set to
+                       :namespaces, namespaces are run in parallel but the vars
+                       in those namespaces are run serially. If set to :vars,
+                       the namespaces are run serially, but the vars inside run
+                       in parallel.
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
     :test-warn-time  - print a warning for any test that exceeds this time

@@ -53,9 +53,26 @@ The above example will run all tests found in the "test" directory.
 
 #### Multithreading
 
-By default Eftest runs tests in parallel, which can cause issues with
-tests that expect to be single-threaded. To disable this, set the
-`:multithread?` option to `false`:
+By default Eftest runs all tests in parallel, which can cause issues
+with tests that expect to be single-threaded. To disable this and set
+all tests to be executed in serial, set the `:multithread?` option to
+`false`:
+
+```clojure
+user=> (run-tests (find-tests "test") {:multithread? false})
+```
+
+If you want the test vars inside a namespace to be executed in
+parallel, but the namespaces themselves to be executed in serial, then
+set the `:multithread?` option to `:vars`:
+
+```clojure
+user=> (run-tests (find-tests "test") {:multithread? false})
+```
+
+If you want the vars inside a namespace to execute in serial, but the
+namespaces to be executed in parallel, set the `:multithread?` option
+to `:namespaces`:
 
 ```clojure
 user=> (run-tests (find-tests "test") {:multithread? false})
