@@ -5,7 +5,8 @@
             [clojure.tools.namespace.find :as find]
             [eftest.report :as report]
             [eftest.report.progress :as progress]
-            [eftest.output-capture :as capture]))
+            [eftest.output-capture :as capture])
+  (:import [java.util.concurrent Executors ExecutorService]))
 
 (defmethod test/report :begin-test-run [_])
 
@@ -39,17 +40,25 @@
                         :var      v})))
       result)))
 
-(defn- run-in-parallel [fs]
-  (let [executor (java.util.concurrent.Executors/newFixedThreadPool
-                   (+ 2 (.availableProcessors (Runtime/getRuntime))))]
+(defn- ^Callable bound-callback [f]
+  (cast Callable (bound-fn* f)))
+
+(defn- ^ExecutorService threadpool-executor []
+  (Executors/newFixedThreadPool (+ 2 (.availableProcessors (Runtime/getRuntime)))))
+
+(defn- pcalls* [fs]
+  (let [executor (threadpool-executor)]
     (try
       (->> fs
-           (map #(.submit executor ^Runnable %))
-           doall
+           (map #(.submit executor (bound-callback %)))
+           (doall)
            (map #(.get %))
-           dorun)
+           (doall))
       (finally
         (.shutdownNow executor)))))
+
+(defn- pmap* [f xs]
+  (pcalls* (map (fn [x] #(f x)) xs)))
 
 (defn- test-vars
   [ns vars {:as opts :keys [fail-fast? capture-output? test-warn-time]
@@ -70,25 +79,29 @@
     (once-fixtures
       (fn []
         (if (:multithread? opts true)
-          (let [test (bound-fn* test-var)]
-            (dorun (->> vars (filter synchronized?) (map test)))
-            (dorun (->> vars (remove synchronized?) (map (fn [v] #(test v))) run-in-parallel)))
+          (do (->> vars (filter synchronized?) (map test-var) (dorun))
+              (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
           (doseq [v vars] (test-var v)))))))
 
-(defn- test-ns [ns vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
+(defn- test-ns [ns vars opts]
   (let [ns (the-ns ns)]
     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
       (test/do-report {:type :begin-test-ns, :ns ns})
-      (if capture-output?
-        (capture/with-capture (test-vars ns vars opts))
-        (test-vars ns vars opts))
+      (test-vars ns vars opts)
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 
-(defn- test-all [vars opts]
-  (->> (group-by (comp :ns meta) vars)
-       (map (fn [[ns vars]] (test-ns ns vars opts)))
-       (apply merge-with +)))
+(defn- test-all [vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
+  (let [mapf     (if (:multithread-ns? opts true)
+                   pmap*
+                   map)
+        test-nss (fn []
+                   (->> (group-by (comp :ns meta) vars)
+                        (mapf (fn [[ns vars]] (test-ns ns vars opts)))
+                        (apply merge-with +)))]
+    (if capture-output?
+      (capture/with-capture (test-nss))
+      (test-nss))))
 
 (defn- require-namespaces-in-dir [dir]
   (map (fn [ns] (require ns) (find-ns ns)) (find/find-namespaces-in-dir dir)))
@@ -127,6 +140,8 @@
   "Run the supplied test vars. Accepts the following options:
 
     :multithread?    - true if the tests should run in multiple threads
+                       (defaults to true)
+    :multithread-ns? - true if the tests in different namespaces should run in multiple threads
                        (defaults to true)
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
