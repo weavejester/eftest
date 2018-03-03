@@ -1,4 +1,4 @@
-(defproject lein-eftest "0.4.3"
+(defproject lein-eftest "0.5.0"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"

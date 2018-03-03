@@ -6,12 +6,12 @@ Eftest is a fast and pretty Clojure test runner.
 
 To install, add the following to your project `:dependencies`:
 
-    [eftest "0.4.3"]
+    [eftest "0.5.0"]
 
 Alternatively, if you just want to use Eftest as a `lein test`
 replacement, add the following to your project `:plugins`:
 
-    [lein-eftest "0.4.3"]
+    [lein-eftest "0.5.0"]
 
 ## Screenshots
 
