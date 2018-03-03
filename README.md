@@ -67,7 +67,7 @@ parallel, but the namespaces themselves to be executed in serial, then
 set the `:multithread?` option to `:vars`:
 
 ```clojure
-user=> (run-tests (find-tests "test") {:multithread? false})
+user=> (run-tests (find-tests "test") {:multithread? :vars})
 ```
 
 If you want the vars inside a namespace to execute in serial, but the
@@ -75,7 +75,7 @@ namespaces to be executed in parallel, set the `:multithread?` option
 to `:namespaces`:
 
 ```clojure
-user=> (run-tests (find-tests "test") {:multithread? false})
+user=> (run-tests (find-tests "test") {:multithread? :namespaces})
 ```
 
 Alternatively, you can add the `:eftest/synchronized` key as metadata
