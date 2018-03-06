@@ -68,11 +68,11 @@
   (or (true? multithread?) (= multithread? :namespaces)))
 
 (defn- test-vars
-  [ns vars {:as opts :keys [fail-fast? capture-output? test-warn-time]
-            :or {capture-output? true}}]
+  [ns vars report
+   {:as opts :keys [fail-fast? capture-output? test-warn-time]
+    :or {capture-output? true}}]
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
-        report        (synchronize test/report)
         test-var      (-> (fn [v]
                             (when-not (and fail-fast? (failed-test?))
                               (each-fixtures
@@ -90,19 +90,20 @@
               (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
           (doseq [v vars] (test-var v)))))))
 
-(defn- test-ns [ns vars opts]
+(defn- test-ns [ns vars report opts]
   (let [ns (the-ns ns)]
     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
       (test/do-report {:type :begin-test-ns, :ns ns})
-      (test-vars ns vars opts)
+      (test-vars ns vars report opts)
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 
 (defn- test-all [vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
-  (let [mapf (if (multithread-namespaces? opts) pmap* map)
-        f    #(->> (group-by (comp :ns meta) vars)
-                   (mapf (fn [[ns vars]] (test-ns ns vars opts)))
-                   (apply merge-with +))]
+  (let [report (synchronize test/report)
+        mapf   (if (multithread-namespaces? opts) pmap* map)
+        f      #(->> (group-by (comp :ns meta) vars)
+                     (mapf (fn [[ns vars]] (test-ns ns vars report opts)))
+                     (apply merge-with +))]
     (if capture-output?
       (capture/with-capture (f))
       (f))))
