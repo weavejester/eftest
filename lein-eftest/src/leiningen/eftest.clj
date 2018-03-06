@@ -38,7 +38,7 @@
                                                             selector#)]
                                                  (apply sfn#
                                                         (merge (-> var# meta :ns meta)
-                                                               (assoc (meta var#) ::var var#))
+                                                               (assoc (meta var#) :leiningen.test/var var#))
                                                         args#)))
                                              selectors#)))))
            copy#      #(doseq [v# vars#] (copy-meta# v# %1 %2))]
@@ -63,7 +63,7 @@
                                      (second selector#)
                                      selector#)
                                    (merge (-> var# meta :ns meta)
-                                          (assoc (meta var#) ::var var#))
+                                          (assoc (meta var#) :leiningen.test/var var#))
                                    args#))
                           ~selectors)]
       ns#)))
