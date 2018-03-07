@@ -100,9 +100,9 @@
 (defn eftest
   "Run the project's tests with Eftest."
   [project & tests]
-  (let [[nses selectors] (test/read-args tests project)
-        profiles         [:leiningen/test :test eftest-profile]
+  (let [profiles         [:leiningen/test :test eftest-profile]
         project          (project/merge-profiles project profiles)
+        [nses selectors] (test/read-args tests project)
         form             (testing-form project nses selectors)]
     (try
       (when-let [n (eval/eval-in-project project form (require-form project))]
