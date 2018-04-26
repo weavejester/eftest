@@ -5,7 +5,8 @@
 (def ^:dynamic *test-buffer* nil)
 
 (defn read-test-buffer []
-  (String. (.toByteArray *test-buffer*)))
+  (when *test-buffer*
+    (String. (.toByteArray *test-buffer*))))
 
 (def active-buffers (atom #{}))
 

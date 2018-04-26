@@ -32,8 +32,16 @@
 
 (defn- testing-vars-str [{:keys [file line]}]
   (let [test-var (first test/*testing-vars*)]
-    (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
-         (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
+    (str (:clojure-frame *fonts*)
+         (if test-var
+           (-> test-var meta :ns ns-name)
+           "unknown-namespace")
+         "/"
+         (:function-name *fonts*)
+         (if test-var
+           (-> test-var meta :name)
+           "unknown-test")
+         (:reset *fonts*)
          (when (or file line)
            (str " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))))
 
