@@ -8,6 +8,11 @@
   additional statistics and information during the tests."
   nil)
 
+(def ^:dynamic *testing-path*
+  "2-element vector [ns scope] where scope is either :clojure.test/once-fixtures,
+  :clojure.test/each-fixtures or var under test"
+  nil)
+
 (defn report-to-file
   "Wrap a report function so that its output is directed to a file. output-file
   should be something that can be coerced into a Writer."

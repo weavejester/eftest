@@ -8,6 +8,7 @@
             [puget.printer :as puget]
             [fipp.engine :as fipp]
             [eftest.output-capture :as capture]
+            [eftest.report :as report]
             [clojure.string :as str]))
 
 (def ^:dynamic *fonts*
@@ -30,12 +31,19 @@
   "The divider to use between test failure and error reports."
   "\n")
 
-(defn- testing-vars-str [{:keys [file line]}]
-  (let [test-var (first test/*testing-vars*)]
-    (str (:clojure-frame *fonts*) (-> test-var meta :ns ns-name) "/"
-         (:function-name *fonts*) (-> test-var meta :name) (:reset *fonts*)
-         (when (or file line)
-           (str " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))))
+(defn- testing-scope-str [{:keys [file line]}]
+  (let [[ns scope] report/*testing-path*]
+    (str
+     (cond
+       (keyword? scope)
+       (str (:clojure-frame *fonts*) (ns-name ns) (:reset *fonts*) " during "
+            (:function-name *fonts*) scope (:reset *fonts*))
+
+       (var? scope)
+       (str (:clojure-frame *fonts*) (ns-name ns) "/"
+            (:function-name *fonts*) (:name (meta scope)) (:reset *fonts*)))
+     (when (or file line)
+       (str " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))))
 
 (defn- diff-all [expected actuals]
   (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
@@ -71,18 +79,19 @@
        [:span "expected: " (puget/format-doc p expected) :break]
        [:span "  actual: " (puget/format-doc p actual)]])))
 
+(defn- print-stacktrace [t]
+  (binding [exception/*traditional* true
+            exception/*fonts* *fonts*]
+    (repl/pretty-print-stack-trace t test/*stack-trace-depth*)))
+
 (defn- error-report [{:keys [expected actual]}]
-  (let [p (pretty-printer)]
-    (pprint-document
-      [:group
-       [:span "expected: " (puget/format-doc p expected) :break]
-       [:span "  actual: "
-        (if (instance? Throwable actual)
-          (binding [exception/*traditional* true
-                    exception/*fonts* *fonts*]
-            (with-out-str
-              (repl/pretty-print-stack-trace actual test/*stack-trace-depth*)))
-          (puget/format-doc p actual))]])))
+  (if expected
+    (let [p (pretty-printer)]
+      (pprint-document
+       [:group
+        [:span "expected: " (puget/format-doc p expected) :break]
+        [:span "  actual: " (with-out-str (print-stacktrace actual))]]))
+    (print-stacktrace actual)))
 
 (defn- print-output [output]
   (let [c (:divider *fonts*)
@@ -106,7 +115,7 @@
   (test/with-test-out
     (test/inc-report-counter :fail)
     (print *divider*)
-    (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-vars-str m))
+    (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-scope-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (if (and (sequential? expected)
@@ -119,11 +128,11 @@
   (test/with-test-out
     (test/inc-report-counter :error)
     (print *divider*)
-    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-vars-str m))
+    (println (str (:error *fonts*) "ERROR" (:reset *fonts*) " in") (testing-scope-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
     (error-report m)
-    (print-output (capture/read-test-buffer))))
+    (some-> (capture/read-test-buffer) (print-output))))
 
 (defn- pluralize [word count]
   (if (= count 1) word (str word "s")))
@@ -134,7 +143,7 @@
 (defmethod report :long-test [{:keys [duration] :as m}]
   (test/with-test-out
     (print *divider*)
-    (println (str (:fail *fonts*) "LONG TEST" (:reset *fonts*) " in") (testing-vars-str m))
+    (println (str (:fail *fonts*) "LONG TEST" (:reset *fonts*) " in") (testing-scope-str m))
     (when duration (println "Test took" (format-interval duration) "seconds to run"))))
 
 (defmethod report :summary [{:keys [test pass fail error duration]}]
