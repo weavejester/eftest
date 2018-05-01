@@ -67,6 +67,11 @@
 (defn- multithread-namespaces? [{:keys [multithread?] :or {multithread? true}}]
   (or (true? multithread?) (= multithread? :namespaces)))
 
+(defn- fixture-exception [throwable]
+  {:type    :error
+   :message "Uncaught exception during fixture initialization."
+   :actual  throwable})
+
 (defn- test-vars
   [ns vars report
    {:as opts :keys [fail-fast? capture-output? test-warn-time]
@@ -75,20 +80,30 @@
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
         test-var      (-> (fn [v]
                             (when-not (and fail-fast? (failed-test?))
-                              (each-fixtures
-                               (if capture-output?
-                                 #(binding [test/report report]
-                                    (capture/with-test-buffer
-                                      (test/test-var v)))
-                                 #(binding [test/report report]
-                                    (test/test-var v))))))
+                              (binding [report/*testing-path* [ns ::test/each-fixtures]]
+                                (try
+                                  (each-fixtures
+                                    (if capture-output?
+                                      #(binding [test/report report
+                                                 report/*testing-path* [ns v]]
+                                          (capture/with-test-buffer
+                                            (test/test-var v)))
+                                      #(binding [test/report report
+                                                 report/*testing-path* [ns v]]
+                                          (test/test-var v))))
+                                  (catch Throwable t
+                                    (test/do-report (fixture-exception t)))))))
                           (wrap-test-with-timer test-warn-time))]
-    (once-fixtures
-      (fn []
-        (if (multithread-vars? opts)
-          (do (->> vars (filter synchronized?) (map test-var)   (dorun))
-              (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
-          (doseq [v vars] (test-var v)))))))
+    (binding [report/*testing-path* [ns ::test/once-fixtures]]
+      (try
+        (once-fixtures
+          (fn []
+            (if (multithread-vars? opts)
+              (do (->> vars (filter synchronized?) (map test-var)   (dorun))
+                  (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
+              (doseq [v vars] (test-var v)))))
+        (catch Throwable t
+          (test/do-report (fixture-exception t)))))))
 
 (defn- test-ns [ns vars report opts]
   (let [ns (the-ns ns)]
