@@ -182,7 +182,7 @@ You can customize the reporter and set the concurrency by adding an
 
 ```clojure
 :eftest {:multithread? false
-         :report clojure.report.junit/report
+         :report eftest.report.junit/report
          ;; You can optionally write the output to a file like so:
          :report-to-file "target/junit.xml"}
 ```
