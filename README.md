@@ -13,6 +13,15 @@ replacement, add the following to your project `:plugins`:
 
     [lein-eftest "0.5.2"]
 
+Alternatively, if your project uses
+[the CLI tools introduced in Clojure 1.9](https://clojure.org/guides/deps_and_cli),
+you can try it out from the command line:
+
+```shell
+clojure -Sdeps '{:deps {eftest {:mvn/version "0.5.2"}} :paths ["src" "test"]}' \
+        -e "(require '[eftest.runner :refer [find-tests run-tests]]) (run-tests (find-tests \"test\"))"
+```
+
 ## Screenshots
 
 When all the tests pass, it looks like this:
