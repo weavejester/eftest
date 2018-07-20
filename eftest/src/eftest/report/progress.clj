@@ -18,14 +18,8 @@
   (prog/print bar {:format (colored-format state)}))
 
 (defn- set-state [old-state new-state]
-  (case [old-state new-state]
-    [nil   :pass]  :pass
-    [nil   :fail]  :fail
-    [:pass :fail]  :fail
-    [nil   :error] :error
-    [:pass :error] :error
-    [:fail :error] :error
-    old-state))
+  (if (#{[nil :pass] [nil :fail] [:pass :fail] [nil :error] [:pass :error] [:fail :error]}
+       [old-state new-state]) new-state old-state))
 
 (defmulti report :type)
 
