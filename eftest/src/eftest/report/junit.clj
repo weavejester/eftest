@@ -3,9 +3,15 @@
   (:require [clojure.java.io :as io]
             [clojure.stacktrace :as stack]
             [clojure.test :as test]
-            [eftest.report :refer [*context*]]))
+            [eftest.report :refer [*context*]]
+            [eftest.report :as report]))
 
 ;; XML generation based on junit.clj
+
+(defn- combine [f g]
+  (fn [] (g) (f)))
+
+(def ^:private flush-lock (Object.))
 
 (def ^:private escape-xml-map
   (zipmap "'<>\"&" (map #(str \& % \;) '[apos lt gt quot amp])))
@@ -93,25 +99,31 @@
     (println "</testsuites>")))
 
 (defmethod report :begin-test-ns [m]
-  (test/with-test-out
-    (start-suite (name (ns-name (:ns m))))))
+  (let [ns (name (ns-name (:ns m)))
+        f  #(test/with-test-out (start-suite ns))]
+    (swap! *context* assoc-in [::deferred-report ns] f)))
 
 (defmethod report :end-test-ns [m]
-  (test/with-test-out
-    (finish-suite)))
+  (let [ns (name (ns-name (:ns m)))
+        g  (get-in @*context* [::deferred-report ns])
+        f  #(test/with-test-out (finish-suite))]
+    (locking flush-lock (g) (f))
+    (swap! *context* update ::deferred-report dissoc ns)))
 
 (defmethod report :end-test-var [m]
-  (test/with-test-out
-    (let [test-var (:var m)
-          results  (get-in @*context* [::test-results test-var])]
-      (start-case (test-name test/*testing-vars*)
-                  (name (ns-name (:ns (meta test-var)))))
-      (doseq [result results]
-        (if (= :fail (:type result))
-          (failure-el result)
-          (error-el result)))
-      (finish-case)
-      (swap! *context* update ::test-results dissoc test-var))))
+  (let [ns (-> (:var m) meta :ns ns-name name)
+        testing-vars test/*testing-vars*
+        f  #(test/with-test-out
+              (let [test-var (:var m)
+                    results  (get-in @*context* [::test-results test-var])]
+                (start-case (test-name testing-vars) ns)
+                (doseq [result results]
+                  (if (= :fail (:type result))
+                    (failure-el result)
+                    (error-el result)))
+                (finish-case)
+                (swap! *context* update ::test-results dissoc test-var)))]
+    (swap! *context* update-in [::deferred-report ns] (partial combine f))))
 
 (defn- push-result [result]
   (let [test-var (first test/*testing-vars*)]
