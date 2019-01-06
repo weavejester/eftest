@@ -27,12 +27,15 @@
       (sut/run-tests {:report (report/report-to-file junit/report "target/test-out/junit.xml")}))
   (is (string? (slurp "target/test-out/junit.xml"))))
 
+(def this-ns *ns*)
+
 (deftest file-and-line-in-pretty-fail-report
   (let [pretty-nil (puget/pprint-str nil {:print-color true
                                           :print-meta false})
         result (with-out-str
                  (binding [*test-out* *out*
                            pretty/*fonts* {}
+                           report/*testing-path* [this-ns #'file-and-line-in-pretty-fail-report]
                            *report-counters* (ref *initial-report-counters*)]
                    (output-capture/with-test-buffer
                      (pretty/report {:type :fail
