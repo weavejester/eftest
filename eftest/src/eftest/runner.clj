@@ -44,28 +44,31 @@
 (defn- ^Callable bound-callback [f]
   (cast Callable (bound-fn* f)))
 
-(defn- ^ExecutorService threadpool-executor []
-  (Executors/newFixedThreadPool (+ 2 (.availableProcessors (Runtime/getRuntime)))))
+(defn- default-thread-count []
+  (+ 2 (.availableProcessors (Runtime/getRuntime))))
 
-(defn- pcalls* [fs]
-  (let [executor (threadpool-executor)]
-    (try
-      (->> fs
-           (map #(.submit executor (bound-callback %)))
-           (doall)
-           (map #(.get %))
-           (doall))
-      (finally
-        (.shutdownNow executor)))))
+(defn- ^ExecutorService threadpool-executor
+  [{:keys [thread-count] :or {thread-count (default-thread-count)}}]
+  (Executors/newFixedThreadPool thread-count))
 
-(defn- pmap* [f xs]
-  (pcalls* (map (fn [x] #(f x)) xs)))
+(defn- pcalls* [executor fs]
+  (->> fs
+       (map #(.submit executor (bound-callback %)))
+       (doall)
+       (map #(.get %))
+       (doall)))
+
+(defn- pmap* [executor f xs]
+  (pcalls* executor (map (fn [x] #(f x)) xs)))
 
 (defn- multithread-vars? [{:keys [multithread?] :or {multithread? true}}]
   (or (true? multithread?) (= multithread? :vars)))
 
 (defn- multithread-namespaces? [{:keys [multithread?] :or {multithread? true}}]
   (or (true? multithread?) (= multithread? :namespaces)))
+
+(defn- multithread? [opts]
+  (or (multithread-vars? opts) (multithread-namespaces? opts)))
 
 (defn- fixture-exception [throwable]
   {:type    :error
@@ -74,7 +77,7 @@
 
 (defn- test-vars
   [ns vars report
-   {:as opts :keys [fail-fast? capture-output? test-warn-time]
+   {:as opts :keys [executor fail-fast? capture-output? test-warn-time]
     :or {capture-output? true}}]
   (let [once-fixtures (-> ns meta ::test/once-fixtures test/join-fixtures)
         each-fixtures (-> ns meta ::test/each-fixtures test/join-fixtures)
@@ -99,8 +102,8 @@
         (once-fixtures
           (fn []
             (if (multithread-vars? opts)
-              (do (->> vars (filter synchronized?) (map test-var)   (dorun))
-                  (->> vars (remove synchronized?) (pmap* test-var) (dorun)))
+              (do (->> vars (filter synchronized?) (map test-var) (dorun))
+                  (->> vars (remove synchronized?) (pmap* executor test-var) (dorun)))
               (doseq [v vars] (test-var v)))))
         (catch Throwable t
           (test/do-report (fixture-exception t)))))))
@@ -113,9 +116,13 @@
       (test/do-report {:type :end-test-ns, :ns ns})
       @test/*report-counters*)))
 
-(defn- test-all [vars {:as opts :keys [capture-output?] :or {capture-output? true}}]
+(defn- test-all [vars {:as opts
+                       :keys [capture-output? executor]
+                       :or {capture-output? true}}]
   (let [report (synchronize test/report)
-        mapf   (if (multithread-namespaces? opts) pmap* map)
+        mapf   (if (multithread-namespaces? opts)
+                 (partial pmap* executor)
+                 map)
         f      #(->> (group-by (comp :ns meta) vars)
                      (mapf (fn [[ns vars]] (test-ns ns vars report opts)))
                      (apply merge-with +))]
@@ -169,6 +176,10 @@
                        in those namespaces are run serially. If set to :vars,
                        the namespaces are run serially, but the vars inside run
                        in parallel.
+    :thread-count    - the number of threads used to run the tests in parallel
+                       (as per :multithread?). If not specified, the number
+                       reported by java.lang.Runtime.availableProcessors (which
+                       is not always accurate) *plus two* will be used.
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
     :test-warn-time  - print a warning for any test that exceeds this time
@@ -182,7 +193,10 @@
        (binding [report/*context* (atom {})
                  test/report      (:report opts progress/report)]
          (test/do-report {:type :begin-test-run, :count (count vars)})
-         (let [counters (test-all vars opts)
+         (let [executor (when (multithread? opts) (threadpool-executor opts))
+               opts     (assoc opts :executor executor)
+               counters (try (test-all vars opts)
+                             (finally (when executor (.shutdownNow executor))))
                duration (/ (- (System/nanoTime) start-time) 1e6)
                summary  (assoc counters :type :summary, :duration duration)]
            (test/do-report summary)

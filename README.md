@@ -94,6 +94,29 @@ Or you can synchronize the entire namespace:
             [foo.core :refer :all]))
 ```
 
+##### Setting the number of threads used
+
+When multithreading is enabled, Eftest uses a single fixed-threadpool
+[`ExecutorService`][executorservice] to run all selected tests.
+
+By default, Eftest will instantiate the threadpool with the number of processors
+(cores) available to the JVM, as reported by
+[`Runtime.availableProcessors`][availableprocessors]. (NB: in some
+circumstances, such as [in a CircleCI test container][resource-class],
+`Runtime.availableProcessors` returns an erroneous value.)
+
+[executorservice]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ExecutorService.html
+[availableprocessors]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Runtime.html#availableProcessors()
+[resource-class]: https://circleci.com/docs/2.0/configuration-reference/#resource_class
+
+Users can override the default behavior by including the key `:thread-count`
+in the options map supplied to `run-tests` with the value being any
+positive integer:
+
+```clojure
+user=> (run-tests (find-tests "test") {:thread-count 4})
+```
+
 #### Reporting
 
 You can also change the reporting function used. For example, if you
@@ -177,11 +200,12 @@ To use the Lein-Eftest plugin, just run:
 lein eftest
 ```
 
-You can customize the reporter and set the concurrency by adding an
-`:eftest` key to your project map:
+You can customize the reporter and configure the concurrency settings
+by adding an `:eftest` key to your project map:
 
 ```clojure
-:eftest {:multithread? false
+:eftest {:multithread? :vars
+         :thread-count 4
          :report eftest.report.junit/report
          ;; You can optionally write the output to a file like so:
          :report-to-file "target/junit.xml"}
