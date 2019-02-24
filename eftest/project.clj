@@ -1,4 +1,4 @@
-(defproject eftest "0.5.4"
+(defproject eftest "0.5.5"
   :description "A fast and pretty test runner"
   :url "https://github.com/weavejester/eftest"
   :license {:name "Eclipse Public License"
