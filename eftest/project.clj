@@ -7,4 +7,5 @@
                  [org.clojure/tools.namespace "0.2.11"]
                  [progrock "0.1.2"]
                  [io.aviso/pretty "0.1.34"]
-                 [mvxcvi/puget "1.0.3"]])
+                 [mvxcvi/puget "1.0.3"]]
+  :plugins [[lein-eftest "0.5.6"]])
