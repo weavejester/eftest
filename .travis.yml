@@ -1,0 +1,3 @@
+language: clojure
+before_install: cd eftest
+script: lein eftest
