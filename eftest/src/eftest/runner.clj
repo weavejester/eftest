@@ -42,7 +42,10 @@
       result)))
 
 (defn- ^Callable bound-callback [f]
-  (cast Callable (bound-fn* f)))
+  (let [bindings (get-thread-bindings)]
+    (reify Callable
+      (call [_]
+        (with-bindings* bindings f)))))
 
 (defn- default-thread-count []
   (+ 2 (.availableProcessors (Runtime/getRuntime))))
