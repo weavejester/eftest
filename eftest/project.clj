@@ -8,4 +8,9 @@
                  [progrock "0.1.2"]
                  [io.aviso/pretty "0.1.34"]
                  [mvxcvi/puget "1.0.3"]]
-  :plugins [[lein-eftest "0.5.6"]])
+  :plugins [[lein-eftest "0.5.6"]]
+  :aliases {"test-all" ["with-profile" "default:+1.8:+1.9:+1.10" "eftest"]}
+  :profiles
+  {:1.8  {:dependencies [[org.clojure/clojure "1.8.0"]]}
+   :1.9  {:dependencies [[org.clojure/clojure "1.9.0"]]}
+   :1.10 {:dependencies [[org.clojure/clojure "1.10.0"]]}})
