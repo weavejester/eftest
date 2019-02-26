@@ -1,5 +1,7 @@
 # Eftest
 
+[![Build Status](https://travis-ci.org/weavejester/eftest.svg?branch=master)](https://travis-ci.org/weavejester/eftest)
+
 Eftest is a fast and pretty Clojure test runner.
 
 ## Installation
