@@ -1,7 +1,6 @@
 (ns eftest.report.pretty
   "A test reporter with an emphasis on pretty formatting."
   (:require [clojure.test :as test]
-            [clojure.data :as data]
             [io.aviso.ansi :as ansi]
             [io.aviso.exception :as exception]
             [io.aviso.repl :as repl]
@@ -45,9 +44,6 @@
      (when (or file line)
        (str " (" (:source *fonts*) file ":" line (:reset *fonts*) ")")))))
 
-(defn- diff-all [expected actuals]
-  (map vector actuals (map #(take 2 (data/diff expected %)) actuals)))
-
 (defn- pretty-printer []
   (puget/pretty-printer {:print-color true
                          :print-meta false}))
@@ -55,10 +51,9 @@
 (defn- pprint-document [doc]
   (fipp/pprint-document doc {:width 80}))
 
-(defn- equals-fail-report [{:keys [actual]}]
-  (let [[_ [_ expected & actuals]] actual
-        p (pretty-printer)]
-    (doseq [[actual [a b]] (diff-all expected actuals)]
+(defn- equals-fail-report [{:keys [actual diffs expected]}]
+  (let [p (pretty-printer)]
+    (doseq [[actual [a b]] diffs]
       (pprint-document
         [:group
          [:span "expected: " (puget/format-doc p expected) :break]
@@ -111,15 +106,14 @@
 (defmethod report :pass [m]
   (test/with-test-out (test/inc-report-counter :pass)))
 
-(defmethod report :fail [{:keys [message expected] :as m}]
+(defmethod report :fail [{:keys [message expected diffs] :as m}]
   (test/with-test-out
     (test/inc-report-counter :fail)
     (print *divider*)
     (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-scope-str m))
     (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
     (when message (println message))
-    (if (and (sequential? expected)
-             (= (first expected) '=))
+    (if (some? diffs)
       (equals-fail-report m)
       (predicate-fail-report m))
     (print-output (capture/read-test-buffer))))
