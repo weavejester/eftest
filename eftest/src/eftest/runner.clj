@@ -120,18 +120,21 @@
       @test/*report-counters*)))
 
 (defn- test-all [vars {:as opts
-                       :keys [capture-output? executor]
+                       :keys [capture-output?]
                        :or {capture-output? true}}]
-  (let [report (synchronize test/report)
-        mapf   (if (multithread-namespaces? opts)
-                 (partial pmap* executor)
-                 map)
-        f      #(->> (group-by (comp :ns meta) vars)
-                     (mapf (fn [[ns vars]] (test-ns ns vars report opts)))
-                     (apply merge-with +))]
-    (if capture-output?
-      (capture/with-capture (f))
-      (f))))
+  (let [report   (synchronize test/report)
+        executor (delay (Executors/newCachedThreadPool))
+        mapf     (if (multithread-namespaces? opts)
+                   (partial pmap* @executor)
+                   map)
+        f        #(->> (group-by (comp :ns meta) vars)
+                       (mapf (fn [[ns vars]] (test-ns ns vars report opts)))
+                       (apply merge-with +))]
+    (try (if capture-output?
+           (capture/with-capture (f))
+           (f))
+         (finally (when (realized? executor)
+                    (.shutdownNow @executor))))))
 
 (defn- require-namespaces-in-dir [dir]
   (map (fn [ns] (require ns) (find-ns ns)) (find/find-namespaces-in-dir dir)))
