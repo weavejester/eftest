@@ -5,7 +5,7 @@
             [leiningen.core.project :as project]))
 
 (def eftest-profile
-  {:dependencies '[[eftest "0.5.7"]]})
+  {:dependencies '[[eftest "0.5.8"]]})
 
 (defn- report-namespace [project]
   (if-let [reporter (get-in project [:eftest :report])]
