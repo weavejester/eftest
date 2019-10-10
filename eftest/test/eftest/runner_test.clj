@@ -14,6 +14,12 @@
 (clojure.test/deftest another-failing-test
   (clojure.test/is (= 3 4)))
 
+(in-ns 'eftest.test-ns.slow-test)
+(clojure.core/refer-clojure)
+(clojure.core/require 'clojure.test)
+(clojure.test/deftest a-slow-test
+  (clojure.test/is (true? (do (Thread/sleep 10) true))))
+
 (in-ns 'eftest.runner-test)
 
 (defn with-test-out-str* [f]
@@ -58,3 +64,9 @@
     (println out)
     (is (re-find #"(?m)expected: 1\n  actual: 2" out))
     (is (re-find #"(?m)expected: 3\n  actual: 4" out))))
+
+(deftest test-slow-test-report
+  (testing "should fail with an accurate var location"
+    (let [out (:output
+                (test-run-tests ['eftest.test-ns.slow-test] {:test-warn-time 5}))]
+      (is (re-find #"LONG TEST in eftest.test-ns.slow-test/a-slow-test\n" out)))))
