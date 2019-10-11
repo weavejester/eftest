@@ -10,6 +10,12 @@
 
 (defmethod test/report :begin-test-run [_])
 
+(defn- deterministic-shuffle [seed ^java.util.Collection coll]
+  (let [al (java.util.ArrayList. coll)
+        rng (java.util.Random. seed)]
+    (java.util.Collections/shuffle al rng)
+    (vec al)))
+
 (defn- synchronize [f]
   (let [lock (Object.)] (fn [x] (locking lock (f x)))))
 
@@ -120,14 +126,16 @@
       @test/*report-counters*)))
 
 (defn- test-all [vars {:as opts
-                       :keys [capture-output?]
-                       :or {capture-output? true}}]
+                       :keys [capture-output? randomize-seed]
+                       :or {capture-output? true randomize-seed 0}}]
   (let [report   (synchronize test/report)
         executor (delay (Executors/newCachedThreadPool))
         mapf     (if (multithread-namespaces? opts)
                    (partial pmap* @executor)
                    map)
         f        #(->> (group-by (comp :ns meta) vars)
+                       (sort-by (comp str key))
+                       (deterministic-shuffle randomize-seed)
                        (mapf (fn [[ns vars]] (test-ns ns vars report opts)))
                        (apply merge-with +))]
     (try (if capture-output?
@@ -186,6 +194,8 @@
                        (as per :multithread?). If not specified, the number
                        reported by java.lang.Runtime.availableProcessors (which
                        is not always accurate) *plus two* will be used.
+    :randomize-seed  - the random seed used to deterministically shuffle
+                       test namespaces before running tests (defaults to 0).
     :report          - the test reporting function to use
                        (defaults to eftest.report.progress/report)
     :test-warn-time  - print a warning for any test that exceeds this time
