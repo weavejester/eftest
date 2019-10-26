@@ -32,7 +32,7 @@
       (< 0 (:error @test/*report-counters* 0))
       (< 0 (:fail @test/*report-counters* 0))))
 
-(defn- wrap-test-with-timer [test-fn test-warn-time]
+(defn- wrap-test-with-timer [test-fn ns test-warn-time]
   (fn [v]
     (let [start-time (System/nanoTime)
           result     (test-fn v)
@@ -41,7 +41,8 @@
       (when (and (not (known-slow? v))
                  (number? test-warn-time)
                  (<= test-warn-time duration))
-        (binding [clojure.test/*testing-vars* (conj clojure.test/*testing-vars* v)]
+        (binding [clojure.test/*testing-vars* (conj clojure.test/*testing-vars* v)
+                  report/*testing-path* [ns v]]
           (test/report {:type     :long-test
                         :duration duration
                         :var      v})))
@@ -105,7 +106,7 @@
                                           (test/test-var v))))
                                   (catch Throwable t
                                     (test/do-report (fixture-exception t)))))))
-                          (wrap-test-with-timer test-warn-time))]
+                          (wrap-test-with-timer ns test-warn-time))]
     (binding [report/*testing-path* [ns ::test/once-fixtures]]
       (try
         (once-fixtures
