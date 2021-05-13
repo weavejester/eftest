@@ -84,7 +84,11 @@
   (let [selectors (vec selectors)
         ns-sym    (gensym "namespaces")]
     `(let [~ns-sym              ~(form-for-select-namespaces namespaces selectors)
-           _#                   (when (seq ~ns-sym) (apply require :reload ~ns-sym))
+           _#                   (when (seq ~ns-sym)
+                                  (apply require
+                                         ~@(when (= :nrepl (:eval-in project))
+                                             [:reload])
+                                         ~ns-sym))
            selected-namespaces# ~(form-for-nses-selectors-match selectors ns-sym)
            options#             ~(-> project :eftest process-options)
            summary#             (~form-for-suppressing-unselected-tests
