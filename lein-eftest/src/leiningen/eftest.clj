@@ -92,7 +92,7 @@
                                  #(eftest.runner/run-tests
                                    (eftest.runner/find-tests selected-namespaces#)
                                    options#))
-           exit-code#           (+ (:error summary#) (:fail summary#))]
+           exit-code#           (min 1 (+ (:error summary#) (:fail summary#)))]
        (if ~(= :leiningen (:eval-in project))
          exit-code#
          (System/exit exit-code#)))))
