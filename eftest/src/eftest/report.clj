@@ -13,6 +13,16 @@
   :clojure.test/each-fixtures or var under test"
   nil)
 
+(defn combined-reporter
+  "Combines the reporters by running first one directly,
+  and others with clojure.test/*report-counters* bound to nil."
+  [[report & rst]]
+  (fn [m]
+    (report m)
+    (doseq [report rst]
+      (binding [clojure.test/*report-counters* nil]
+        (report m)))))
+
 (defn report-to-file
   "Wrap a report function so that its output is directed to a file. output-file
   should be something that can be coerced into a Writer."

@@ -1,6 +1,6 @@
-(defproject eftest "0.5.9"
+(defproject com.exoscale/eftest "0.5.9"
   :description "A fast and pretty test runner"
-  :url "https://github.com/weavejester/eftest"
+  :url "https://github.com/exoscale/eftest"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
