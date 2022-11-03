@@ -41,8 +41,8 @@
       [nil name]
       [(.substring name 0 i) (.substring name (+ i 1))])))
 
-(defn start-case [name classname]
-  (start-element 'testcase {:name name :classname classname}))
+(defn start-case [name classname time]
+  (start-element 'testcase {:name name :classname classname :time time}))
 
 (defn finish-case []
   (finish-element 'testcase))
@@ -110,13 +110,19 @@
     (locking flush-lock (g) (f))
     (swap! *context* update ::deferred-report dissoc ns)))
 
+(defmethod report :begin-test-var [m]
+  (swap! *context* assoc-in [::test-start-times (:var m)] (System/nanoTime)))
+
 (defmethod report :end-test-var [m]
   (let [ns (-> (:var m) meta :ns ns-name name)
+        duration (- (System/nanoTime)
+                    (get-in @*context* [::test-start-times (:var m)]))
         testing-vars test/*testing-vars*
         f  #(test/with-test-out
               (let [test-var (:var m)
+                    time (format "%.03f" (/ duration 1e9))
                     results  (get-in @*context* [::test-results test-var])]
-                (start-case (test-name testing-vars) ns)
+                (start-case (test-name testing-vars) ns time)
                 (doseq [result results]
                   (if (= :fail (:type result))
                     (failure-el result)
