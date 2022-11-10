@@ -1,4 +1,4 @@
-(defproject lein-eftest "0.5.9"
+(defproject lein-eftest "0.6.0"
   :description "A fast and pretty Clojure test runner"
   :url "https://github.com/weavejester/eftest"
   :license {:name "Eclipse Public License"
