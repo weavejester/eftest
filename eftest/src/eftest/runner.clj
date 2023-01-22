@@ -3,6 +3,7 @@
   (:require [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.tools.namespace.find :as find]
+            [editscript.core :as editscript]
             [eftest.report :as report]
             [eftest.report.progress :as progress]
             [eftest.output-capture :as capture])
@@ -177,6 +178,40 @@
 
 (defmethod find-tests java.lang.String [dir]
   (find-tests-in-dir (io/file dir)))
+
+(defn e= [exp act]
+  (let [d (editscript/diff exp act {:algo :quick})]
+    (= 0 (editscript/edit-distance d))))
+
+(defn- make-diff [exp act [path & _]]
+  {:path path
+   :exp (get-in exp path)
+   :act (get-in act path)})
+
+(defn make-diffs [exp act]
+  (let [d (editscript/diff exp act)
+        es (editscript/get-edits d)]
+    (map #(make-diff exp act %) es)))
+
+(defmethod clojure.test/assert-expr 'e= [msg form]
+  (let [args (rest form)
+        pred (first form)]
+    `(let [values# (list ~@args)
+           result# (apply ~pred values#)]
+       (if result#
+         (clojure.test/do-report {
+                  :type :pass
+                  :message ~msg
+                  :expected '~form
+                  :actual (cons ~pred values#)})
+         (let [diffs# (apply make-diffs values#)]
+           (clojure.test/do-report {
+                  :type :fail-with-diffs
+                  :message ~msg
+                  :expected '~form
+                  :actual (list '~'not (cons '~pred values#))
+                  :diffs diffs#})))
+       result#)))
 
 (defn run-tests
   "Run the supplied test vars. Accepts the following options:

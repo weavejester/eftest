@@ -1,12 +1,27 @@
 (ns eftest.runner-test
   (:require [clojure.test :refer :all]
-            [eftest.runner :as sut]))
+            [eftest.runner :as sut :refer [e=]]))
 
 (in-ns 'eftest.test-ns.single-failing-test)
 (clojure.core/refer-clojure)
 (clojure.core/require 'clojure.test)
 (clojure.test/deftest single-failing-test
   (clojure.test/is (= 1 2)))
+
+(in-ns 'eftest.test-ns.editscript-failing-test)
+(clojure.core/refer-clojure)
+(clojure.core/require 'clojure.test)
+(clojure.core/require '[eftest.runner :refer [e=]])
+(clojure.test/deftest editscript-failing-test
+  (clojure.test/is (e= 1 2)))
+
+(in-ns 'eftest.test-ns.editscript-failing-complex-test)
+(clojure.core/refer-clojure)
+(clojure.core/require 'clojure.test)
+(clojure.core/require '[eftest.runner :refer [e=]])
+(clojure.test/deftest editscript-failing-complex-test
+  (clojure.test/is (e= {:a 1 :b [1 2 3] :c {:a 1}}
+                       {:a 2 :b [2 3 4] :c {:a 2}})))
 
 (in-ns 'eftest.test-ns.another-failing-test)
 (clojure.core/refer-clojure)
@@ -21,6 +36,18 @@
   (clojure.test/is (true? (do (Thread/sleep 10) true))))
 
 (in-ns 'eftest.runner-test)
+
+(comment
+; 이 파일에서 직접 실행하면 in-ns가 동작하지 않았다.
+; in-ns는 repl에서만 로딩되는 함수였다는 사실을 잊었다.
+; 그래서 코드를 복사해서 iced repl에서 위 실행했다.
+; e= 매크로를 수정할 때마다 editscript-failing-test deftest를 재정의해야 한다.
+(println (test-run-tests 'eftest.test-ns.editscript-failing-test))
+
+(clojure.pprint/pprint
+(clojure.walk/macroexpand-all
+ '(clojure.test/is (e= 1 2))))
+)
 
 (defn with-test-out-str* [f]
   (let [s (java.io.StringWriter.)]
@@ -46,6 +73,18 @@
 (deftest test-reporting
   (let [out (:output (test-run-tests 'eftest.test-ns.single-failing-test))]
     (is (re-find #"FAIL in eftest.test-ns.single-failing-test/single-failing-test" out))
+    (is (not (re-find #"IllegalArgumentException" out)))))
+
+(deftest test-editscript-failing
+  (let [out (:output (test-run-tests 'eftest.test-ns.editscript-failing-test))]
+    (is (re-find #"FAIL in eftest.test-ns.editscript-failing-test/editscript-failing-test" out))
+    (is (re-find #"diff" out))
+    (is (not (re-find #"IllegalArgumentException" out)))))
+
+(deftest test-editscript-failing-complex
+  (let [out (:output (test-run-tests 'eftest.test-ns.editscript-failing-complex-test))]
+    (is (re-find #"FAIL in eftest.test-ns.editscript-failing-complex-test/editscript-failing-complex-test" out))
+    (is (re-find #"diff" out))
     (is (not (re-find #"IllegalArgumentException" out)))))
 
 (deftest test-fail-fast

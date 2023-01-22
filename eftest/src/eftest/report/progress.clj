@@ -48,6 +48,13 @@
     (newline)
     (print-progress (swap! report/*context* update-in [:state] set-state :fail))))
 
+(defmethod report :fail-with-diffs [m]
+  (test/with-test-out
+    (print clear-line)
+    (binding [pretty/*divider* "\r"] (pretty/report m))
+    (newline)
+    (print-progress (swap! report/*context* update-in [:state] set-state :fail))))
+
 (defmethod report :error [m]
   (test/with-test-out
     (print clear-line)

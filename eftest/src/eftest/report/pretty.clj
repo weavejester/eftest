@@ -52,6 +52,11 @@
   (puget/pretty-printer {:print-color true
                          :print-meta false}))
 
+(defn- pretty-printer-unsorted-key []
+  (puget/pretty-printer {:print-color true
+                         :print-meta false
+                         :sort-keys false}))
+
 (defn- pprint-document [doc]
   (fipp/pprint-document doc {:width 80}))
 
@@ -71,6 +76,15 @@
               [:span
                (if a  "          + " "+ ")
                (puget/format-doc p b)])])]))))
+
+(defn- editscript-equals-fail-report [{:keys [expected actual diffs]}]
+  (let [p (pretty-printer-unsorted-key)]
+    (pprint-document
+      [:group
+       [:span "expected: " (puget/format-doc p expected) :break]
+       [:span "  actual: " (puget/format-doc p actual) :break]
+       [:span "    diff: " (puget/format-doc p diffs)]
+      ])))
 
 (defn- predicate-fail-report [{:keys [expected actual]}]
   (let [p (pretty-printer)]
@@ -122,6 +136,17 @@
              (= (first expected) '=))
       (equals-fail-report m)
       (predicate-fail-report m))
+    (print-output (capture/read-test-buffer))))
+
+(defmethod report :fail-with-diffs [{:keys [message expected] :as m}]
+  (test/with-test-out
+    (test/inc-report-counter :fail)
+    (print *divider*)
+    (println (str (:fail *fonts*) "FAIL" (:reset *fonts*) " in") (testing-scope-str m))
+    (when (seq test/*testing-contexts*) (println (test/testing-contexts-str)))
+    (when message (println message))
+    (when (= (first expected) 'e=)
+      (editscript-equals-fail-report m))
     (print-output (capture/read-test-buffer))))
 
 (defmethod report :error [{:keys [message expected actual] :as m}]
