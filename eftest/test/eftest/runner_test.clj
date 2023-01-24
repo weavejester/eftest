@@ -37,18 +37,6 @@
 
 (in-ns 'eftest.runner-test)
 
-(comment
-; 이 파일에서 직접 실행하면 in-ns가 동작하지 않았다.
-; in-ns는 repl에서만 로딩되는 함수였다는 사실을 잊었다.
-; 그래서 코드를 복사해서 iced repl에서 위 실행했다.
-; e= 매크로를 수정할 때마다 editscript-failing-test deftest를 재정의해야 한다.
-(println (test-run-tests 'eftest.test-ns.editscript-failing-test))
-
-(clojure.pprint/pprint
-(clojure.walk/macroexpand-all
- '(clojure.test/is (e= 1 2))))
-)
-
 (defn with-test-out-str* [f]
   (let [s (java.io.StringWriter.)]
     (binding [clojure.test/*test-out* s]
@@ -100,7 +88,6 @@
              (test-run-tests
               '[eftest.test-ns.single-failing-test
                 eftest.test-ns.another-failing-test]))]
-    (println out)
     (is (re-find #"(?m)expected: 1\n  actual: 2" out))
     (is (re-find #"(?m)expected: 3\n  actual: 4" out))))
 
