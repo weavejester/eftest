@@ -5,7 +5,7 @@
             [leiningen.core.project :as project]))
 
 (def eftest-profile
-  {:dependencies '[[org.clojars.guruma/eftest "0.6.2"]]})
+  {:dependencies '[[org.clojars.guruma/eftest "0.6.0"]]})
 
 (defn- report-namespace [project]
   (if-let [reporter (get-in project [:eftest :report])]
