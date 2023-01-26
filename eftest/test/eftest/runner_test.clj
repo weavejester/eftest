@@ -88,6 +88,7 @@
              (test-run-tests
               '[eftest.test-ns.single-failing-test
                 eftest.test-ns.another-failing-test]))]
+    (println out)
     (is (re-find #"(?m)expected: 1\n  actual: 2" out))
     (is (re-find #"(?m)expected: 3\n  actual: 4" out))))
 
