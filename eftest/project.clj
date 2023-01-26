@@ -7,7 +7,7 @@
                  [org.clojure/tools.namespace "1.3.0"]
                  [progrock "0.1.2"]
                  [io.aviso/pretty "1.3"]
-                 [mvxcvi/puget "1.3"]
+                 [mvxcvi/puget "1.3.4"]
                  [juji/editscript "0.6.2"]]
   :plugins [[lein-eftest "0.6.2"]]
   :aliases {"test-all"
