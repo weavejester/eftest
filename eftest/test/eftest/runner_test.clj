@@ -1,12 +1,27 @@
 (ns eftest.runner-test
   (:require [clojure.test :refer :all]
-            [eftest.runner :as sut]))
+            [eftest.runner :as sut :refer [e=]]))
 
 (in-ns 'eftest.test-ns.single-failing-test)
 (clojure.core/refer-clojure)
 (clojure.core/require 'clojure.test)
 (clojure.test/deftest single-failing-test
   (clojure.test/is (= 1 2)))
+
+(in-ns 'eftest.test-ns.editscript-failing-test)
+(clojure.core/refer-clojure)
+(clojure.core/require 'clojure.test)
+(clojure.core/require '[eftest.runner :refer [e=]])
+(clojure.test/deftest editscript-failing-test
+  (clojure.test/is (e= 1 2)))
+
+(in-ns 'eftest.test-ns.editscript-failing-complex-test)
+(clojure.core/refer-clojure)
+(clojure.core/require 'clojure.test)
+(clojure.core/require '[eftest.runner :refer [e=]])
+(clojure.test/deftest editscript-failing-complex-test
+  (clojure.test/is (e= {:a 1 :b [1 2 3] :c {:a 1}}
+                       {:a 2 :b [2 3 4] :c {:a 2}})))
 
 (in-ns 'eftest.test-ns.another-failing-test)
 (clojure.core/refer-clojure)
@@ -46,6 +61,18 @@
 (deftest test-reporting
   (let [out (:output (test-run-tests 'eftest.test-ns.single-failing-test))]
     (is (re-find #"FAIL in eftest.test-ns.single-failing-test/single-failing-test" out))
+    (is (not (re-find #"IllegalArgumentException" out)))))
+
+(deftest test-editscript-failing
+  (let [out (:output (test-run-tests 'eftest.test-ns.editscript-failing-test))]
+    (is (re-find #"FAIL in eftest.test-ns.editscript-failing-test/editscript-failing-test" out))
+    (is (re-find #"diff" out))
+    (is (not (re-find #"IllegalArgumentException" out)))))
+
+(deftest test-editscript-failing-complex
+  (let [out (:output (test-run-tests 'eftest.test-ns.editscript-failing-complex-test))]
+    (is (re-find #"FAIL in eftest.test-ns.editscript-failing-complex-test/editscript-failing-complex-test" out))
+    (is (re-find #"diff" out))
     (is (not (re-find #"IllegalArgumentException" out)))))
 
 (deftest test-fail-fast
